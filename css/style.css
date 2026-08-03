@@ -1,0 +1,71 @@
+@font-face {
+  font-family: 'PressStart';
+  src: url('../assets/fonts/PressStart2P.ttf') format('truetype');
+  font-display: block;
+}
+@font-face {
+  font-family: 'FusionPixel';
+  src: url('../assets/fonts/FusionPixel-zh.woff2') format('woff2');
+  font-display: block;
+}
+@font-face {
+  font-family: 'FusionPixelJA';
+  src: url('../assets/fonts/FusionPixel-ja.woff2') format('woff2');
+  font-display: block;
+}
+/* 青柳衡山フォントT (free incl. commercial/logo use) — title-logo kanji only */
+@font-face {
+  font-family: 'KouzanBrush';
+  src: url('../assets/fonts/AoyagiKouzanT.ttf') format('truetype');
+  font-display: block;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #07080c;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#stage {
+  position: relative;
+  line-height: 0;
+}
+
+#game {
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #0b0d12;
+}
+
+/* scanline + vignette overlay for the modern-retro CRT feel */
+#crt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(0,0,0,0.34) 100%),
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0.14) 0px, rgba(0,0,0,0.14) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px);
+  mix-blend-mode: multiply;
+}
+
+#err {
+  display: none;
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  padding: 8px 12px;
+  background: #b00020;
+  color: #fff;
+  font: 12px/1.5 monospace;
+  white-space: pre-wrap;
+  z-index: 10;
+}

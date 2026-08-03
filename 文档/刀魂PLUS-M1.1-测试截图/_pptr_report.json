@@ -1,0 +1,159 @@
+{
+  "env": {
+    "browser": "Edg/150.0.4078.105",
+    "node": "v22.13.1",
+    "date": "2026-08-01T07:07:35.557Z",
+    "html": "刀魂PLUS-M1.1-修复版.html",
+    "htmlBytes": 20876223,
+    "input": "CDP real keyboard events only; evaluate() read-only"
+  },
+  "pass": 24,
+  "fail": 0,
+  "results": [
+    {
+      "step": "01-标题",
+      "check": "真实浏览器主循环运行",
+      "ok": true,
+      "detail": "tick 108 → 154"
+    },
+    {
+      "step": "01-标题",
+      "check": "标题菜单四项循环导航",
+      "ok": true,
+      "detail": "S×4 回到 0"
+    },
+    {
+      "step": "02-VSCPU选角",
+      "check": "P1 光标移动",
+      "ok": true,
+      "detail": "cursor→ayame"
+    },
+    {
+      "step": "02-VSCPU选角",
+      "check": "花名册 6 人",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "06-VSCPU战斗",
+      "check": "VSCPU 模式标志",
+      "ok": true,
+      "detail": "p2IsAI=true"
+    },
+    {
+      "step": "06-VSCPU战斗",
+      "check": "CPU 挂真 AI 控制器",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "07-暂停",
+      "check": "暂停进入",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "07-暂停",
+      "check": "暂停恢复(J 不串成攻击)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "08-LOCALVS-P2选角",
+      "check": "P1 选中 wukong",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "08-LOCALVS-P2选角",
+      "check": "P2 独立光标(方向键)",
+      "ok": true,
+      "detail": "cursor2=1"
+    },
+    {
+      "step": "08-LOCALVS-P2选角",
+      "check": "P2 小键盘1 确认",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "10-双人战斗",
+      "check": "LOCALVS 单源模式标志",
+      "ok": true,
+      "detail": "p2IsAI=false"
+    },
+    {
+      "step": "10-双人战斗",
+      "check": "双人同时输入均造成伤害",
+      "ok": true,
+      "detail": "dmg=[36,28]"
+    },
+    {
+      "step": "11-双人打到结算",
+      "check": "LOCALVS 两胜制打满到结算",
+      "ok": true,
+      "detail": "winner=wukong"
+    },
+    {
+      "step": "12-训练模式",
+      "check": "选人 A 键回绕到 angela",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "12-训练模式",
+      "check": "angela 超杀触发(火焰法阵)",
+      "ok": true,
+      "detail": "dummy lost 24 hp"
+    },
+    {
+      "step": "12-训练模式",
+      "check": "训练模式 HUD DUMMY 标签(见截图)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "14-HOWTO",
+      "check": "HOWTO 进入/导航/K返回",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "16-模式隔离",
+      "check": "LOCALVS→标题→VSCPU 无模式污染",
+      "ok": true,
+      "detail": "p2IsAI=true, 真AI"
+    },
+    {
+      "step": "16-模式隔离",
+      "check": "全程无 ERROR 覆盖层",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "17-mack对ayame",
+      "check": "mack vs ayame 实战",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "18-houyi对kenji",
+      "check": "houyi vs kenji 实战",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "19-wukong超杀",
+      "check": "wukong 三段棍法超杀",
+      "ok": true,
+      "detail": "dmg=23"
+    },
+    {
+      "step": "20-houyi超杀",
+      "check": "houyi 射日箭雨超杀",
+      "ok": true,
+      "detail": "dmg=22"
+    }
+  ],
+  "consoleLog": []
+}

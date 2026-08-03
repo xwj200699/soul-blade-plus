@@ -1,0 +1,14 @@
+# 第三方参考素材(版权原因禁止入仓)
+video.mp4
+
+# 临时/可再生产物
+_build/_frames/
+_build/frames_out*.txt
+_build/*_out.txt
+_frame_host.html
+
+# 系统杂项
+Thumbs.db
+desktop.ini
+.DS_Store
+node_modules/

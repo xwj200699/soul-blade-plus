@@ -1,0 +1,172 @@
+{
+  "date": "2026-08-01T09:26:29.186Z",
+  "reps": 5,
+  "games": 150,
+  "elapsedSec": 9.2,
+  "overall": [
+    {
+      "id": "mack",
+      "winrate": 64
+    },
+    {
+      "id": "angela",
+      "winrate": 58
+    },
+    {
+      "id": "ayame",
+      "winrate": 56
+    },
+    {
+      "id": "wukong",
+      "winrate": 46
+    },
+    {
+      "id": "kenji",
+      "winrate": 44
+    },
+    {
+      "id": "houyi",
+      "winrate": 32
+    }
+  ],
+  "matchups": [
+    {
+      "pair": "mack vs kenji",
+      "aWins": 6,
+      "n": 10,
+      "wr": 60
+    },
+    {
+      "pair": "mack vs ayame",
+      "aWins": 5,
+      "n": 10,
+      "wr": 50
+    },
+    {
+      "pair": "mack vs wukong",
+      "aWins": 7,
+      "n": 10,
+      "wr": 70
+    },
+    {
+      "pair": "mack vs houyi",
+      "aWins": 9,
+      "n": 10,
+      "wr": 90
+    },
+    {
+      "pair": "mack vs angela",
+      "aWins": 5,
+      "n": 10,
+      "wr": 50
+    },
+    {
+      "pair": "kenji vs ayame",
+      "aWins": 3,
+      "n": 10,
+      "wr": 30
+    },
+    {
+      "pair": "kenji vs wukong",
+      "aWins": 7,
+      "n": 10,
+      "wr": 70
+    },
+    {
+      "pair": "kenji vs houyi",
+      "aWins": 4,
+      "n": 10,
+      "wr": 40
+    },
+    {
+      "pair": "kenji vs angela",
+      "aWins": 4,
+      "n": 10,
+      "wr": 40
+    },
+    {
+      "pair": "ayame vs wukong",
+      "aWins": 7,
+      "n": 10,
+      "wr": 70
+    },
+    {
+      "pair": "ayame vs houyi",
+      "aWins": 6,
+      "n": 10,
+      "wr": 60
+    },
+    {
+      "pair": "ayame vs angela",
+      "aWins": 3,
+      "n": 10,
+      "wr": 30
+    },
+    {
+      "pair": "wukong vs houyi",
+      "aWins": 7,
+      "n": 10,
+      "wr": 70
+    },
+    {
+      "pair": "wukong vs angela",
+      "aWins": 7,
+      "n": 10,
+      "wr": 70
+    },
+    {
+      "pair": "houyi vs angela",
+      "aWins": 2,
+      "n": 10,
+      "wr": 20
+    }
+  ],
+  "flags": [
+    {
+      "pair": "mack vs wukong",
+      "wr": 70,
+      "severity": "watch"
+    },
+    {
+      "pair": "mack vs houyi",
+      "wr": 90,
+      "severity": "P1-lopsided"
+    },
+    {
+      "pair": "kenji vs ayame",
+      "wr": 30,
+      "severity": "watch"
+    },
+    {
+      "pair": "kenji vs wukong",
+      "wr": 70,
+      "severity": "watch"
+    },
+    {
+      "pair": "ayame vs wukong",
+      "wr": 70,
+      "severity": "watch"
+    },
+    {
+      "pair": "ayame vs angela",
+      "wr": 30,
+      "severity": "watch"
+    },
+    {
+      "pair": "wukong vs houyi",
+      "wr": 70,
+      "severity": "watch"
+    },
+    {
+      "pair": "wukong vs angela",
+      "wr": 70,
+      "severity": "watch"
+    },
+    {
+      "pair": "houyi vs angela",
+      "wr": 20,
+      "severity": "watch"
+    }
+  ],
+  "note": "flag thresholds: >=70% watch, >=85% lopsided(P1)"
+}

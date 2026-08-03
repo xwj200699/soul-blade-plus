@@ -1,5 +1,17 @@
 # 血刃 CRIMSON EDGE · 群英乱斗
 
+[![Play](https://img.shields.io/badge/▶_在线试玩-血刃_M1.3-c9182b?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html)
+[![NewFight](https://img.shields.io/badge/▶_在线试玩-New_Fight_Q版-ff6b9d?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/New%20Fight/)
+
+![Version](https://img.shields.io/badge/version-M1.3_闯关版-e8b23a)
+![NewFight](https://img.shields.io/badge/分支-New_Fight_M2-ff9dbe)
+![HTML5](https://img.shields.io/badge/HTML5-单文件离线-e34f26?logo=html5&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-零依赖-f7df1e?logo=javascript&logoColor=black)
+![Canvas](https://img.shields.io/badge/Canvas_2D-程序化像素美术-59d96e)
+![WebAudio](https://img.shields.io/badge/WebAudio-运行时合成音频-7fd3ff)
+![Verified](https://img.shields.io/badge/真实浏览器验收-37%2F37_·_33%2F33_PASS-2ea44f)
+![License](https://img.shields.io/badge/用途-学习研究_·_非商用-8a4ae0)
+
 单文件像素格斗游戏。始于对 [soul-blade.pages.dev](https://soul-blade.pages.dev) 引擎的学习性深化改造（非商用）；自 **M1.2 起更名「血刃」并完成视觉资产全面自产化**——UI 层不再包含上游项目的任何美术资产，拥有独立设计身份（青铜·雷紋体系，见 `artlib/README.md`）。
 
 ## 🎮 在线试玩

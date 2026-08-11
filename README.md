@@ -33,6 +33,7 @@
 artlib/   独立美术资产库单元: bake_uilib.py 生成器 + 设计规范 README + preview.png
 js/ css/ assets/ index.html   多文件源码版（开发迭代用; assets/uilib=自产 UI 资产）
 _build/   构建与验证管线（烘焙器/打包器/无头冒烟/平衡遥测/Puppeteer 验收/录像 runner）
+          抽帧器 extract_frames.node.js 的参考素材因版权不入仓, 见 _frames-README.md
 ```
 
 ## 玩法

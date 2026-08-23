@@ -1,8 +1,8 @@
 # 电专 ELECTRIC POWER COLLEGE · 校园乱斗
 
-[![Play](https://img.shields.io/badge/▶_在线试玩-电专_校园换皮版-2a66a8?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/)
-[![Play-old](https://img.shields.io/badge/▶_在线试玩-血刃_M1.3(换皮前)-c9182b?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html)
-[![NewFight](https://img.shields.io/badge/▶_在线试玩-New_Fight_Q版-ff6b9d?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/New%20Fight/)
+[![Play](https://img.shields.io/badge/▶_在线试玩-电专_校园换皮版-2a66a8?style=for-the-badge)](https://xwj200699.github.io/soul-blade-plus/)
+[![Play-old](https://img.shields.io/badge/▶_在线试玩-血刃_M1.3(换皮前)-c9182b?style=for-the-badge)](https://xwj200699.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html)
+[![NewFight](https://img.shields.io/badge/▶_在线试玩-New_Fight_Q版-ff6b9d?style=for-the-badge)](https://xwj200699.github.io/soul-blade-plus/New%20Fight/)
 
 ![Version](https://img.shields.io/badge/version-校园换皮版-f0c83c)
 ![Roster](https://img.shields.io/badge/花名册-九人-50a0dc)
@@ -20,9 +20,9 @@
 
 | 版本 | 链接 |
 |---|---|
-| **电专 校园换皮版**（多文件最新源码，推荐） | [立即游玩](https://evans777max.github.io/soul-blade-plus/) |
-| 血刃 M1.3 闯关版（换皮前的单文件成品） | [立即游玩](https://evans777max.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html) |
-| **New Fight Q版格斗**（玩偶画风分支·M2） | [立即游玩](https://evans777max.github.io/soul-blade-plus/New%20Fight/) |
+| **电专 校园换皮版**（多文件最新源码，推荐） | [立即游玩](https://xwj200699.github.io/soul-blade-plus/) |
+| 血刃 M1.3 闯关版（换皮前的单文件成品） | [立即游玩](https://xwj200699.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html) |
+| **New Fight Q版格斗**（玩偶画风分支·M2） | [立即游玩](https://xwj200699.github.io/soul-blade-plus/New%20Fight/) |
 
 > 键鼠双通。P1: WASD + J轻 K重 U必杀 I超必；详细键位见下文。
 > 本地跑多文件版请起 HTTP（`python -m http.server`）——`file://` 直开会因浏览器 canvas 污染策略把抠底 UI 资产降级成程序化回退。
@@ -92,11 +92,13 @@ P2 键位：方向键移动 + `,`轻 `.`重 `/`必杀 `右Shift`超必（或小�
 ## 素材来源与授权（M1.2 更新）
 
 - **引擎代码**：fork 自 soul-blade.pages.dev（学习用途，README 全程声明）；
-- **UI 美术（自 M1.2）**：全部为本项目 `artlib/` 程序化自产（青铜·雷紋体系，27 件，
-  含血刃字标/封面/漆带/mack·kenji 胸像等），**构建不再包含上游 ui-lab 任何文件**；
+- **UI 美术（自 M1.2）**：全部为本项目 `artlib/` 程序化自产（当前为电力·蓝金体系，
+  由 `artlib/bake_uilib.py` 生成），**构建不再包含上游 ui-lab 任何文件**；
+  标题底图 `titlebg-campus.png` 由 `artlib/bake_titlebg_campus.py` 从校园照片像素化
+  得到，**源照本身不入仓**；
 - **角色战斗精灵**：mack/kenji/ayame = LuizMelo "Martial Hero"/"Huntress"（itch.io
-  免费授权，合法第三方素材，保留）；wukong/houyi/angela = 本项目 `_build/bake_roster2.py`
-  程序化烘焙（公有领域神话人物的原创重建，不含任何官方资产）；
+  免费授权，合法第三方素材，保留）；wukong/houyi/angela/diaochan = `_build/bake_roster2.py`、
+  doctor/tank = `_build/bake_roster3.py`，均为本项目程序化烘焙（不含任何官方资产）；
 - **音频**：全部 SFX 为 WebAudio 运行时合成（零素材）；BGM 3 首暂沿用上游 Lyria
   生成曲——**上游媒体资产的唯一残留**，自产化列入 M1.3 待办；
 - **字体**：PressStart 2P（OFL）/ 缝合怪像素字体 FusionPixel（OFL）/ 衡山毛筆フォント（免费授权）；
@@ -109,18 +111,20 @@ P2 键位：方向键移动 + `,`轻 `.`重 `/`必杀 `右Shift`超必（或小�
 - **无头冒烟**：`node _build/smoke_m12.node.js`（uilib 资产零缺失审计/尺寸/蹲盒/char2/模式互污/三超杀 FX 断言/分舞台粒子/hard 对局）；历史套件 smoke_m11/smoke 保留
 - **平衡遥测**：`node _build/balance_m12.node.js`（6×6 hard 双向 150 局 → `_build/balance_m12.json`）
 - **重建单文件**：`python _build/build_m12.py`
-- **再生成美术**：`python artlib/bake_uilib.py`（27 件 UI 资产+preview 拼图）；`python _build/bake_roster2.py all` / `ayame_bust` / `uilib_busts`（角色帧与六人胸像）
+- **再生成美术**：`python artlib/bake_uilib.py`（UI 资产 + preview 拼图，就地写入 `assets/uilib`）；
+  `python artlib/bake_titlebg_campus.py`（标题底图，需自备源照）；
+  `python _build/bake_roster2.py`（悟空/后羿/安琪拉/貂蝉 + 胸像）；`python _build/bake_roster3.py`（博士/肉盾）
 - 调试钩子：`index.html?fight&p1=wukong&p2=houyi&ai=hard`、`?pose=special&fight&p1=wukong&training`、`?stage2=1`
 
 ## GitHub 同步
 
-远端：`https://github.com/evans777max/soul-blade-plus`（public，`origin/main`）。
-**公开仓库红线：第三方参考素材、内网信息、个人信息一律不入仓。**
+远端：`https://github.com/xwj200699/soul-blade-plus`（public，`main`）。
+**公开仓库红线：第三方参考素材、内网信息、个人信息一律不入仓**
+——标题底图源照 `开始界面.png`（学校真实宣传照）与 `图/`（旧烘焙输出副本）已在 `.gitignore` 中排除。
 
 **约定：每个里程碑（或任何一轮实质改动）验收通过后，立即同步：**
 
-```powershell
-cd "C:\留存\Game Now\soul-blade-plus"
+```bash
 git add -A
 git commit -m "M1.x: 一句话说明本轮改动"
 git push

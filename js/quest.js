@@ -1,4 +1,5 @@
-/* 血刃 CRIMSON EDGE · M1.3 STORY 闯关模式 (恐龙快打式横板推进)
+/* 电专 ELECTRIC POWER COLLEGE · STORY 闯关模式 (恐龙快打式横板推进)
+   剧情线: 雷雨夜校园被入侵 —— 校门 -> 实训楼机房 -> 主楼穹顶变电中枢, 合闸复电。
    自包含模式模块: 复用 Fighter / AIController / Effects / Projectile / tryHit,
    自带 多敌同屏战斗解算 + 推进相机 + 波次/Boss + 剧情对话条 + 专属 HUD。
    进入: Quest.start(heroId, diff)  (select2 的 STORY 流程调用)
@@ -18,40 +19,40 @@ const Quest = {
 
   LEVELS: [
     {
-      name: '第一幕 · 血暮神社', sub: 'ACT I', stageSel: 0, worldW: 2400,
-      intro: [['？？？', '神社的樱花……被血染红了。'],
-              ['旅人', '血刃现世，群邪蠢动。先从这里的影武者问起。']],
-      bossTalk: [['隼人·真影', '想寻血刃？先胜过我手中之刃。']],
-      outro: [['旅人', '「血刃在都市霓虹的深处。」——他倒下前如是说。']],
+      name: '第一幕 · 校门与中心广场', sub: 'ACT I', stageSel: 0, worldW: 2400,
+      intro: [['广播', '警报——外部人员强行破门，全体师生就近避险！'],
+              ['你', '雷雨夜，变电所警报全红。校门这一段，交给我。']],
+      bossTalk: [['破门先锋', '这所学校的电，从今晚起归我们调度。']],
+      outro: [['你', '他倒下前咬着牙：「机房……才是我们要的东西。」']],
       waves: [
         { at: 780, mooks: [['kenji', 40], ['kenji', 40]] },
         { at: 1560, mooks: [['kenji', 40], ['ayame', 44], ['kenji', 40]] },
       ],
-      boss: { id: 'kenji', hp: 150, name: '隼人·真影' },
+      boss: { id: 'kenji', hp: 150, name: '破门先锋' },
     },
     {
-      name: '第二幕 · 霓虹都市', sub: 'ACT II', stageSel: 1, worldW: 2400,
-      intro: [['旅人', '雨夜的天台。杀气藏在霓虹灯影之间。']],
-      bossTalk: [['夜叉·綾', '再往前一步，就把命留下。']],
-      outro: [['旅人', '夜叉低语：「青铜神殿……血刃归座之地。」']],
+      name: '第二幕 · 实训楼机房', sub: 'ACT II', stageSel: 1, worldW: 2400,
+      intro: [['你', '机房的灯全灭了，只剩机柜指示灯在雨声里一格一格闪。']],
+      bossTalk: [['影袭·夜刃', '再往前一步，全校的数据跟你一起断电。']],
+      outro: [['你', '她最后只说了半句：「主楼穹顶……总闸在他手上。」']],
       waves: [
         { at: 740, mooks: [['ayame', 42], ['ayame', 42]] },
         { at: 1540, mooks: [['ayame', 42], ['houyi', 46], ['ayame', 42]] },
       ],
-      boss: { id: 'ayame', hp: 150, name: '夜叉·綾' },
+      boss: { id: 'ayame', hp: 150, name: '影袭·夜刃' },
     },
     {
-      name: '终幕 · 青铜神殿', sub: 'FINAL ACT', stageSel: 3, worldW: 2600,
-      intro: [['旅人', '兽面之下，血刃悬于王座。'],
-              ['？？？', '想拔刃者——先问过大聖！']],
-      bossTalk: [['大聖·悟空', '俺这棒下，从无全身而退之人！']],
-      outro: [['旅人', '血刃归鞘。传说，就此收笔。']],
+      name: '终幕 · 主楼穹顶变电中枢', sub: 'FINAL ACT', stageSel: 3, worldW: 2600,
+      intro: [['你', '穹顶之下，全校的总闸被人握在手里。'],
+              ['？？？', '想合闸？先从我这一棍下过去！']],
+      bossTalk: [['断电者·首谋', '这一夜的黑暗，我说了才算！']],
+      outro: [['你', '总闸合上。灯，一层一层亮回来了。']],
       waves: [
         { at: 700, mooks: [['wukong', 46], ['houyi', 44]] },
         { at: 1400, mooks: [['angela', 44], ['houyi', 44], ['wukong', 46]] },
         { at: 2000, mooks: [['ayame', 42], ['kenji', 42]] },
       ],
-      boss: { id: 'wukong', hp: 170, name: '大聖·悟空' },
+      boss: { id: 'wukong', hp: 170, name: '断电者·首谋' },
     },
   ],
 
@@ -157,7 +158,8 @@ const Quest = {
     st.arenaLock = { left: cam + 46, right: cam + 978 };
     STAGE.left = st.arenaLock.left; STAGE.right = st.arenaLock.right;
     const b = new Fighter(L.boss.id, cam + 880, -1, G);
-    b.maxHp = b.hp = Math.round(L.boss.hp * D.boss);
+    // 关底血量随英雄基础血同比抬高, 否则英雄血/伤都涨了之后 Boss 一轮就没
+    b.maxHp = b.hp = Math.round(L.boss.hp * D.boss * BASE_HP / 100);
     b.dispHp = b.hp;
     b.isBoss = true;
     b.bossName = L.boss.name;
@@ -472,8 +474,8 @@ const Quest = {
     const hpw = 270;
     ctx.fillStyle = '#241d18'; ctx.fillRect(26, 40, hpw, 12);
     p.dispHp += (Math.max(0, p.hp) - p.dispHp) * 0.2;
-    ctx.fillStyle = p.hp > 30 ? '#e8b24e' : '#e8306a';
-    ctx.fillRect(26, 40, hpw * Math.max(0, p.dispHp) / 100, 12);
+    ctx.fillStyle = p.hp > p.maxHp * 0.2 ? '#e8b24e' : '#e8306a';
+    ctx.fillRect(26, 40, hpw * Math.max(0, p.dispHp) / p.maxHp, 12);
     ctx.strokeStyle = '#b98f3e'; ctx.lineWidth = 1; ctx.strokeRect(26.5, 40.5, hpw - 1, 11);
     ctx.fillStyle = '#241d18'; ctx.fillRect(26, 56, hpw, 7);
     ctx.fillStyle = p.meter >= 100 ? '#c8452c' : '#b98f3e';
@@ -534,7 +536,7 @@ const Quest = {
     ctx.fillStyle = 'rgba(6,8,7,0.82)';
     ctx.fillRect(0, 0, 1024, 576);
     if (UI.ua.reswin) { ctx.globalAlpha = 0.4; ctx.drawImage(UI.ua.reswin, 0, 0, 1024, 576); ctx.globalAlpha = 1; }
-    UI.pixText(ctx, '血刃归鞘', 512, 200, { size: 40, align: 'center', color: '#ffe27a', outline: true, spacing: 6 });
+    UI.pixText(ctx, '全校复电', 512, 200, { size: 40, align: 'center', color: '#ffe27a', outline: true, spacing: 6 });
     UI.pixText(ctx, 'STORY CLEAR', 512, 244, { size: 16, align: 'center', color: '#d9a441', spacing: 6 });
     const mins = ((G.tick - st.t0) / 3600).toFixed(1);
     UI.pixText(ctx, `英雄: ${st.player.c.cn} · 击破: ${st.kills} · 用时: ${mins} 分`, 512, 300, { size: 13, align: 'center', color: '#e8e2d0' });

@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
-const ROOT = "C:\\留存\\Game Now\\soul-blade-plus";
+const ROOT = path.dirname(__dirname);   // 仓库根(原先硬编码作者机路径, 换机即挂)
 const idx = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const ORDER = [...idx.matchAll(/<script src="js\/([a-z0-9]+)\.js/g)].map(m => m[1]);
 
@@ -98,12 +98,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   for (let i = 0; i < 200 && G_("G.screen") === "boot"; i++) await sleep(10);
   console.log("boot ->", G_("G.screen"));
 
-  /* 1) sizes / crouch box (七人, M1.3) */
-  if (G_("ROSTER.length") !== 7 || G_("ROSTER[6]") !== "diaochan") throw new Error("roster != 7 with diaochan");
-  const visH = { mack: 150, kenji: 145, ayame: 150, wukong: Math.round(83 * G_("DATA.wukong.scale")), houyi: Math.round(79 * G_("DATA.houyi.scale")), angela: Math.round(77 * G_("DATA.angela.scale")), diaochan: Math.round(80 * G_("DATA.diaochan.scale")) };
+  /* 1) sizes / crouch box (九人: M1.3 七人 + 校园电力风 doctor/tank) */
+  if (G_("ROSTER.length") !== 9 || G_("ROSTER[6]") !== "diaochan" ||
+      G_("ROSTER[7]") !== "doctor" || G_("ROSTER[8]") !== "tank") throw new Error("roster != 9 (diaochan/doctor/tank)");
+  const visH = { mack: 150, kenji: 145, ayame: 150, wukong: Math.round(83 * G_("DATA.wukong.scale")), houyi: Math.round(79 * G_("DATA.houyi.scale")), angela: Math.round(77 * G_("DATA.angela.scale")), diaochan: Math.round(80 * G_("DATA.diaochan.scale")), doctor: Math.round(84 * G_("DATA.doctor.scale")), tank: Math.round(81 * G_("DATA.tank.scale")) };
   const hs = Object.values(visH);
   const spread = (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs);
-  console.log("display heights (7) spread:", (spread * 100).toFixed(1) + "%");
+  console.log("display heights (9) spread:", (spread * 100).toFixed(1) + "%");
   if (spread > 0.10) throw new Error("size spread > 10%");
   G_("startMatch('wukong', 'mack', 'normal', false, true, false, true)");
   G_("G.phase = 'fight'");
@@ -149,7 +150,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   };
   clickAt(512, 338 + 17); step(2);      // STORY 条中心
   if (G_("G.screen") !== "select" || G_("G.select.quest") !== true) throw new Error("mouse title click failed");
-  const rc7 = G_("(() => { const N = ROSTER.length, TS = 104, GAP = 14, x0 = (1024 - (N * TS + (N - 1) * GAP)) / 2; return JSON.stringify({ x: x0 + 6 * (TS + GAP) + TS / 2, y: 84 + TS / 2 }); })()");
+  const rc7 = G_("(() => { const r = _selGridRects()[6]; return JSON.stringify({ x: r.x + r.w / 2, y: r.y + r.h / 2 }); })()");
   const p7 = JSON.parse(rc7);
   clickAt(p7.x, p7.y); step(2);         // 直接点貂蝉 -> confirm 进难度
   if (G_("G.select.phase") !== "diff" || G_("G.select.p1") !== "diaochan") throw new Error("mouse grid click failed: " + G_("G.select.phase") + "/" + G_("G.select.p1"));
@@ -178,11 +179,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       if (seqSeen && fxSeen && !G_("!!G.fighters[0].superSeq")) break;
     }
     step(30);
-    const hp = G_("G.fighters[1].hp");
+    const hp = G_("G.fighters[1].hp"), maxHp = G_("G.fighters[1].maxHp");
     if (!seqSeen) throw new Error(cid + " superSeq never started");
     if (!fxSeen) throw new Error(cid + " super missing FX: " + what);
-    if (hp > 70) throw new Error(cid + " super damage too low: " + hp);
-    console.log(`${cid} super v2 OK -> hp ${hp}, fx ${what}`);
+    // 门槛按比例(BASE_HP 可调), 不写死血量
+    if (hp > maxHp * 0.7) throw new Error(cid + " super damage too low: " + hp + "/" + maxHp);
+    console.log(`${cid} super v2 OK -> hp ${hp}/${maxHp}, fx ${what}`);
   }
 
   /* 4) per-stage ambience isolation (M1.3 +青铜神殿) */

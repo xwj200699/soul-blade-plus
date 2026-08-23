@@ -5,6 +5,7 @@
 const UI = {
   portraits: {},
   ua: {}, // processed 和风 UI assets; any key may be null → programmatic fallback
+  UILIB_V: 10, // assets/uilib 资产版本; 重烘焙后 +1, 否则浏览器吃旧缓存(同名文件)
 
   // ---- primitives ---------------------------------------------------------
   _font(size) { return `${size}px PressStart, FusionPixelJA, FusionPixel, monospace`; },
@@ -387,7 +388,7 @@ const UI = {
       ctx.fillStyle = '#e8e4d8';
       ctx.fillRect(mirror ? xb - gw : xa, y, gw, h);
       const hw = Math.max(0, w * f.hp / f.maxHp);
-      const low = f.hp <= 30;
+      const low = f.hp <= f.maxHp * 0.2;   // 危险血线按比例, 不写死 30
       ctx.fillStyle = low ? (G.tick % 20 < 10 ? '#ff4a3d' : '#c22a20') : f.c.theme;
       ctx.fillRect(mirror ? xb - hw : xa, y, hw, h);
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
@@ -427,7 +428,7 @@ const UI = {
     else quad(xb - gw, xb, '#e8e4d8');
     // actual hp
     const hw = Math.max(0, w * f.hp / f.maxHp);
-    const low = f.hp <= 30;
+    const low = f.hp <= f.maxHp * 0.2;   // 危险血线按比例, 不写死 30
     const col = low ? (G.tick % 20 < 10 ? '#ff4a3d' : '#c22a20') : f.c.theme;
     if (!mirror) quad(xa, xa + hw, col);
     else quad(xb - hw, xb, col);
@@ -772,7 +773,7 @@ const UI = {
     if (loadingP !== undefined &&
         !(this.ua.tbg && this.ua.temblem && document.fonts.check('90px KouzanBrush'))) {
       const bg0 = ctx.createLinearGradient(0, 0, 0, 576);
-      bg0.addColorStop(0, '#2a1512'); bg0.addColorStop(0.55, '#160b0a'); bg0.addColorStop(1, '#080505');
+      bg0.addColorStop(0, '#16283c'); bg0.addColorStop(0.55, '#0b1626'); bg0.addColorStop(1, '#050a11');
       ctx.fillStyle = bg0; ctx.fillRect(0, 0, 1024, 576);
       this._loadBar(ctx, G, loadingP);
       return;
@@ -781,16 +782,16 @@ const UI = {
     if (bgCv) {
       ctx.drawImage(bgCv, 0, 0);
     } else {
-      // boot: gate art not decoded yet — blood-dusk stand-in until it lands
+      // boot: campus art not decoded yet — storm-blue stand-in until it lands
       const bg = ctx.createLinearGradient(0, 0, 0, 576);
-      bg.addColorStop(0, '#2a1512'); bg.addColorStop(0.55, '#160b0a'); bg.addColorStop(1, '#080505');
+      bg.addColorStop(0, '#16283c'); bg.addColorStop(0.55, '#0b1626'); bg.addColorStop(1, '#050a11');
       ctx.fillStyle = bg; ctx.fillRect(0, 0, 1024, 576);
     }
     ctx.fillStyle = `rgba(7,8,12,${(V.tbg && this.ua.tbg) ? 0.38 : 0.78})`;
     ctx.fillRect(0, 0, 1024, 576);
 
-    // drifting embers instead of floating idle sprites (they had no ground to
-    // stand on over the gate backdrop and read as pasted-in)
+    // drifting sparks instead of floating idle sprites (they had no ground to
+    // stand on over the campus backdrop and read as pasted-in)
     if (!this._embers) {
       this._embers = Array.from({ length: 22 }, () => ({
         x: Math.random() * 1024, y: Math.random() * 576,
@@ -802,15 +803,16 @@ const UI = {
       let ey = (e.y - G.tick * e.v) % 576;
       if (ey < 0) ey += 576;
       ctx.globalAlpha = 0.42 + 0.26 * Math.sin(G.tick * 0.05 + e.ph);
-      ctx.fillStyle = e.s > 2 ? '#ffc531' : '#d9a441';
+      ctx.fillStyle = e.s > 2 ? '#7fd3ff' : '#e8f4ff';
       ctx.fillRect(ex, ey, e.s, e.s);
     }
     ctx.globalAlpha = 1;
 
-    // press-any-key 起始页: 未开始时 Logo 居中偏下, 首键后随 intro 上升到标题位; 菜单同步淡入
+    // press-any-key 起始页: 未开始时 Logo 略偏下, 首键后随 intro 归位; 菜单同步淡入
+    // 起始位下沉量压到 22px: 校园底图的校名招牌在 y≈278-310, 标题块必须整体留在其上方
     const _ip = G.titleStarted ? Math.min(1, (G.titleIntro || 0) / 30) : 0;
     const _ease = 1 - Math.pow(1 - _ip, 3); // easeOutCubic
-    const logoDY = (1 - _ease) * 105;
+    const logoDY = (1 - _ease) * 22;
     const menuA = G.titleStarted ? Math.max(0, Math.min(1, (_ip - 0.4) / 0.6)) : 0;
     ctx.save();
     const bob = Math.sin(G.tick * 0.04) * 4;
@@ -819,11 +821,11 @@ const UI = {
       // title-design preview (?te=...): alt emblem + placeholder name 刀魂;
       // pos = per-kanji [x-frac of W, y-frac of H (char center)]
       const A = this.ua.temblem;
-      const KANJI = '血刃'; // M1.2 更名: 血刃 CRIMSON EDGE(原 刀魂 为上游项目名)
+      const KANJI = '电专'; // 校园换皮: 字标 = 重庆电专(title-logo.png 到位时用资产)
       const L = {
         kanban:   { W: 340, y0: 30, pos: [[0.305, 0.60], [0.715, 0.60]], size: 118, color: '#241610', outline: false },
         gunsen:   { W: 350, y0: 22, pos: [[0.365, 0.25], [0.635, 0.25]], size: 106, color: '#241610', outline: false },
-        zangetsu: { W: 330, y0: 26, pos: [[0.33, 0.47], [0.67, 0.47]], size: 126, color: '#f4ead6', outline: true },
+        zangetsu: { W: 224, y0: 14, pos: [[0.33, 0.47], [0.67, 0.47]], size: 88, color: '#f4ead6', outline: true },
         torii:    { W: 350, y0: 24, pos: [[0.36, 0.33], [0.64, 0.33]], size: 112, color: '#f4ead6', outline: true },
       }[V.te];
       const W = L.W, H = W * A.h / A.w, x0 = 512 - W / 2;
@@ -856,32 +858,41 @@ const UI = {
         ctx.fillRect(gx - 1, gy - s, 2, s * 2);
         ctx.globalAlpha = 1;
       }
-      const subY = Math.min(L.y0 + H + 26, 350);
+      // subY 上限 240: 起始页 logo 下沉 22 + 呼吸 4 之后仍须留在校名招牌(y≈278)之上
+      const subY = Math.min(L.y0 + H + 22, 240);
       // M1.2: 副标衬条 —— 与标题背景建筑细节隔离, 保证任何底图上可读
-      ctx.fillStyle = 'rgba(8,13,11,0.72)';
-      ctx.fillRect(512 - 176, subY - 17, 352, 24);
-      ctx.fillStyle = '#3d6b58';
-      ctx.fillRect(512 - 176, subY - 17, 352, 1);
-      ctx.fillRect(512 - 176, subY + 6, 352, 1);
-      this.pixText(ctx, 'CRIMSON EDGE', 512, subY, { size: 18, align: 'center', color: '#d9a441', outline: true, spacing: 8 });
+      ctx.fillStyle = 'rgba(6,12,20,0.74)';
+      ctx.fillRect(512 - 190, subY - 16, 380, 22);
+      ctx.fillStyle = '#2a66a8';
+      ctx.fillRect(512 - 190, subY - 16, 380, 1);
+      ctx.fillRect(512 - 190, subY + 5, 380, 1);
+      this.pixText(ctx, 'ELECTRIC POWER COLLEGE', 512, subY, { size: 14, align: 'center', color: '#f0c83c', outline: true, spacing: 5 });
     } else {
-      // logo: enso emblem (asset) or rising sun disc + brush title, 和风
+      // 降级层(file:// 直开 canvas 被污染 -> 抠底资产全为 null): 程序化蓝金电力圆徽。
+      // 整块压在 y<252, 起始页下沉 22 后仍不压住底图校名招牌(y≈278-310)
       const TE = this.ua.title;
       if (TE) {
-        const TW = 352, TH = TW * TE.h / TE.w;
-        ctx.drawImage(TE.cv, 512 - TW / 2, 185 - TH / 2, TW, TH);
+        const TW = 212, TH = TW * TE.h / TE.w;
+        ctx.drawImage(TE.cv, 512 - TW / 2, 112 - TH / 2, TW, TH);
       } else {
-        for (const [r, col] of [[152, '#8a6a2f'], [146, '#b32b20'], [138, '#c93527']]) {
+        for (const [r, col] of [[96, '#c8a028'], [90, '#1a3a64'], [84, '#2a66a8']]) {
           ctx.fillStyle = col;
           for (let yy = -r; yy <= r; yy += 4) {
             const half = Math.floor(Math.sqrt(r * r - yy * yy) / 4) * 4;
-            ctx.fillRect(512 - half, 185 + yy, half * 2, 4);
+            ctx.fillRect(512 - half, 112 + yy, half * 2, 4);
           }
         }
       }
-      this.pixText(ctx, '血刃', 512, 226, { size: 108, align: 'center', color: '#f4ead6', outline: true, shadow: 8 });
-      this.pixText(ctx, 'CRIMSON EDGE', 512, 288, { size: 22, align: 'center', color: '#d9a441', outline: true, spacing: 8 });
-      this.pixText(ctx, '- 群英 PIXEL FIGHTING -', 512, 316, { size: 10, align: 'center', color: '#9a8f78', spacing: 4 });
+      // title-logo.png 不走抠底管线, file:// 也能拿到 —— 优先画真字标
+      if (this.ua.logo) {
+        const LG = this.ua.logo, lw = 240, lh = lw * LG.h / LG.w;
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(LG.cv, 512 - lw / 2, 112 - lh / 2, lw, lh);
+      } else {
+        this.pixText(ctx, '电专', 512, 142, { size: 72, align: 'center', color: '#f4f8ff', outline: true, shadow: 6 });
+      }
+      this.pixText(ctx, 'ELECTRIC POWER COLLEGE', 512, 224, { size: 14, align: 'center', color: '#f0c83c', outline: true, spacing: 5 });
+      this.pixText(ctx, '- 群英 PIXEL FIGHTING -', 512, 246, { size: 9, align: 'center', color: '#9aa3bd', spacing: 4 });
     }
     ctx.restore();
 
@@ -1000,7 +1011,7 @@ const UI = {
     // combo + guard essentials (Eric: 原来 4 行太多太乱 → 精简成 2 行, 只留核心)
     ctx.fillStyle = 'rgba(217,164,65,0.1)';
     ctx.fillRect(100, 362, 824, 32);
-    this.pixText(ctx, 'J-J-K-K CHAIN · 2ND K = KNOCKDOWN · 3+ HITS = x1.3 · U KENJI ONLY', 512, 383, {
+    this.pixText(ctx, 'J-J-K-K CHAIN · 2ND K = KNOCKDOWN · 3+ HITS = x1.3 · U/I = ALL FIGHTERS', 512, 383, {
       size: 13, align: 'center', color: '#d9a441', maxW: 800,
     });
     this.pixText(ctx, 'GUARD = HOLD AWAY AT IMPACT · FILL GAUGE → GUARD CRUSH', 512, 428, {
@@ -1310,16 +1321,17 @@ const UI = {
       combofx:  () => this._procSimple('combo-splash.png'),      // combo backdrop
       nameplate:() => this._procSimple('nameplate.png'),         // name bar (knot on left)
     };
-    // title design: DEFAULT = 斩日 emblem × 血暮城门 bg × brush 刀魂 (Eric's pick).
-    // URL overrides: ?te=kanban|gunsen|zangetsu|torii & ?tbg=moon|gate & ?tk=off
+    // title design: DEFAULT = 电专 emblem × 校园夜雷 bg × brush 电专 wordmark.
+    // URL overrides: ?te=kanban|gunsen|zangetsu|torii & ?tbg=campus|moon|gate & ?tk=off
     const q = new URLSearchParams(location.search);
     const TE_FILES = {
       kanban: ['title-kanban.png', 38], gunsen: ['title-gunsen.png', 38],
       zangetsu: ['title-zangetsu.png', 38], torii: ['title-torii.png', 24],
     };
-    const TBG_FILES = { moon: ['titlebg-moon.png', 40], gate: ['titlebg-gate.png', 150] };
+    // campus 是 1024x576 直出成品(artlib/bake_titlebg_campus.py), top=0 即整幅
+    const TBG_FILES = { campus: ['titlebg-campus.png', 0], moon: ['titlebg-moon.png', 40], gate: ['titlebg-gate.png', 150] };
     const te = TE_FILES[q.get('te')] ? q.get('te') : 'zangetsu';
-    const tbg = TBG_FILES[q.get('tbg')] ? q.get('tbg') : 'gate';
+    const tbg = TBG_FILES[q.get('tbg')] ? q.get('tbg') : 'campus';
     this.variant = { te, tbg };
     jobs.temblem = () => this._procSimple(...TE_FILES[te]);
     jobs.tbg = () => this._procTitleBg(...TBG_FILES[tbg]);
@@ -1377,11 +1389,11 @@ const UI = {
     this.pixText(ctx, 'NOW LOADING', bx, by - 10, { size: 11, color: '#d9a441', spacing: 3 });
     ctx.restore();
     this.pixText(ctx, Math.round(p * 100) + '%', bx + bw, by - 10, { size: 11, align: 'right', color: '#ffe27a' });
-    ctx.fillStyle = '#0d0706'; ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = '#050a11'; ctx.fillRect(bx, by, bw, bh);
     const fw = Math.round(bw * p);
     if (fw > 0) {
       const fg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
-      fg.addColorStop(0, '#8a1f16'); fg.addColorStop(0.6, '#c93527'); fg.addColorStop(1, '#e8b24e');
+      fg.addColorStop(0, '#1a3a64'); fg.addColorStop(0.6, '#2a66a8'); fg.addColorStop(1, '#f0c83c');
       ctx.fillStyle = fg; ctx.fillRect(bx, by, fw, bh);
       ctx.fillStyle = 'rgba(255,231,138,0.95)'; ctx.fillRect(bx + Math.max(0, fw - 2), by, 2, bh); // leading glint
     }
@@ -1400,7 +1412,10 @@ const UI = {
 
   _loadImg(file) {
     // M1.2: UI 资产整体切换到自产资产库 assets/uilib(artlib/bake_uilib.py 生成,
-    // 「青铜·雷紋」体系) —— 原 ui-lab(AI 绘)不再被引用, 构建不再打包
+    // 「电力·蓝金」体系) —— 原 ui-lab(AI 绘)不再被引用, 构建不再打包
+    // UILIB_V: 资产同名重烘焙(青铜红金 -> 电力蓝金)后浏览器仍吃旧缓存, 必须带版本号。
+    // file:// 下查询串会被当成路径的一部分导致 404, 所以只在 http(s) 加
+    const qv = (typeof location !== 'undefined' && location.protocol === 'file:') ? '' : '?v=' + UI.UILIB_V;
     return new Promise((res, rej) => {
       const i = new Image();
       i.onload = () => res(i);
@@ -1408,11 +1423,11 @@ const UI = {
         const i2 = new Image();
         i2.onload = () => res(i2);
         i2.onerror = () => rej(new Error('missing ' + file));
-        i2.src = 'assets/uilib/' + file;
+        i2.src = 'assets/uilib/' + file + qv;
       };
       i.onload = () => res(i);
       i.onerror = tryPng;
-      i.src = '/assets/uilib/' + file.replace(/\.png$/, '.webp');
+      i.src = '/assets/uilib/' + file.replace(/\.png$/, '.webp') + qv;
     });
   },
 

@@ -1293,9 +1293,13 @@ class Projectile {
   }
 
   box() {
-    return this.kind === 'kunai'
-      ? { x1: this.x - 12, y1: this.y - 10, x2: this.x + 12, y2: this.y + 10 }
-      : { x1: this.x - 16, y1: this.y - 14, x2: this.x + 16, y2: this.y + 14 };
+    if (this.kind === 'kunai' || this.kind === 'codeshard') {
+      return { x1: this.x - 12, y1: this.y - 10, x2: this.x + 12, y2: this.y + 10 };
+    }
+    if (this.kind === 'sunarrow') {
+      return { x1: this.x - 20, y1: this.y - 16, x2: this.x + 20, y2: this.y + 16 };
+    }
+    return { x1: this.x - 16, y1: this.y - 14, x2: this.x + 16, y2: this.y + 14 };
   }
 
   draw(ctx) {
@@ -1365,6 +1369,57 @@ class Projectile {
         ctx.fillRect(-3, -14, 6, 2);
       }
       ctx.fillStyle = '#e8ba4a';                    // 金扇钉
+      ctx.fillRect(-2, -2, 4, 4);
+    } else if (this.kind === 'datapack') {
+      // 博士·死循环: 青蓝代码包, 扫描线随飞行滚动, 不自旋(读作"数据块")
+      ctx.scale(this.dir, 1);
+      ctx.fillStyle = 'rgba(127,211,255,0.24)';
+      ctx.fillRect(-16, -11, 32, 22);               // 辉光场
+      ctx.fillStyle = '#1b3a5c';                    // 包体底
+      ctx.fillRect(-9, -8, 18, 16);
+      ctx.fillStyle = '#50a0dc';                    // 边框
+      ctx.fillRect(-9, -8, 18, 2); ctx.fillRect(-9, 6, 18, 2);
+      ctx.fillRect(-9, -8, 2, 16); ctx.fillRect(7, -8, 2, 16);
+      ctx.fillStyle = '#7fd3ff';                    // 滚动扫描线(代码行)
+      for (let k = 0; k < 3; k++) {
+        const yy = -5 + ((k * 4 + Math.floor(this.t * 0.6)) % 11);
+        ctx.fillRect(-6, yy, 4 + (k % 2) * 6, 1);
+      }
+      ctx.fillStyle = '#eaf8ff';                    // 前缘白热
+      ctx.fillRect(9, -4, 3, 8);
+    } else if (this.kind === 'sunarrow') {
+      // 后羿·落日重箭: 金红焰箭 —— 日轮箭簇 + 拉长焰尾, 沿飞行方向不自旋
+      const a = Math.atan2(this.vy, this.vx * this.dir);
+      ctx.rotate(a);
+      ctx.scale(this.dir * 1.8, 1.8);
+      const pul = 1 + Math.sin(this.t * 0.45) * 0.12;
+      ctx.fillStyle = 'rgba(255,122,42,0.26)';
+      ctx.fillRect(-22, -7 * pul, 42, 14 * pul);     // 热浪
+      ctx.fillStyle = '#ff7a2a';                     // 焰尾
+      ctx.fillRect(-20, -2, 14, 4);
+      ctx.fillRect(-16, -4, 8, 8);
+      ctx.fillStyle = '#ffb648';                     // 箭杆
+      ctx.fillRect(-10, -1, 20, 2);
+      ctx.fillStyle = '#ffd24a';                     // 日轮(箭簇后的圆盘)
+      ctx.fillRect(2, -5, 8, 10);
+      ctx.fillRect(0, -3, 12, 6);
+      ctx.fillStyle = '#ffffff';                     // 白热箭簇
+      ctx.fillRect(11, -1, 8, 2);
+      ctx.fillRect(9, -2, 4, 4);
+      ctx.fillStyle = '#fff2d8';
+      ctx.fillRect(4, -2, 4, 4);
+    } else if (this.kind === 'codeshard') {
+      // 博士·代码碎片: 青蓝棱片, 高速自旋 + 白芯
+      ctx.rotate(this.t * 0.5 * this.dir);
+      ctx.fillStyle = 'rgba(127,211,255,0.24)';
+      ctx.fillRect(-11, -11, 22, 22);
+      ctx.fillStyle = '#2a66a8';
+      ctx.fillRect(-7, -2, 14, 4);
+      ctx.fillRect(-2, -7, 4, 14);
+      ctx.fillStyle = '#50a0dc';
+      ctx.fillRect(-5, -1, 10, 2);
+      ctx.fillRect(-1, -5, 2, 10);
+      ctx.fillStyle = '#eaf8ff';
       ctx.fillRect(-2, -2, 4, 4);
     } else {
       ctx.fillStyle = 'rgba(125,91,255,0.25)';

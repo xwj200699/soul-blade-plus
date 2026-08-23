@@ -27,7 +27,7 @@
    ===================================================================== */
 (() => {
   UI.ua = UI.ua || {};
-  for (const cid of ['ayame', 'wukong', 'houyi', 'angela', 'diaochan']) {
+  for (const cid of ['ayame', 'wukong', 'houyi', 'angela', 'diaochan', 'doctor', 'tank']) {
     for (const kind of ['sel', 'hud']) {
       const img = new Image();
       img.onload = () => { UI.ua[kind + '_' + cid] = img; };
@@ -103,10 +103,12 @@ updateTitle = function () {
    ===================================================================== */
 /* 选人/舞台/难度的共享几何(绘制与鼠标热区同源, 改布局只动这里) */
 function _selGridRects() {
-  const N = ROSTER.length, TS = 104, GAP = 14;
-  const x0 = (1024 - (N * TS + (N - 1) * GAP)) / 2, y0 = 84;
+  // 花名册增长时自动缩卡: 九人 104px 会溢出 1024 宽, 按可用宽反算卡边长
+  const N = ROSTER.length, GAP = 14, AVAIL = 952;
+  const TS = Math.min(104, Math.floor((AVAIL - (N - 1) * GAP) / N));
+  const x0 = Math.round((1024 - (N * TS + (N - 1) * GAP)) / 2), y0 = 84;
   const r = [];
-  for (let i = 0; i < N; i++) r.push({ x: x0 + i * (TS + GAP) - 3, y: y0 - 3, w: TS + 6, h: TS + 6 });
+  for (let i = 0; i < N; i++) r.push({ x: x0 + i * (TS + GAP) - 3, y: y0 - 3, w: TS + 6, h: TS + 6, ts: TS });
   return r;
 }
 function _stageCardRects() {
@@ -246,12 +248,12 @@ UI._drawCharGrid = function (ctx, G, s) {
     this.pixText(ctx, 'A/D 选择 · J 确认 · K 返回', 512, 66, { size: 10, align: 'center', color: '#9aa3bd' });
   }
 
-  // 六人网格
-  const N = ROSTER.length, TS = 104, GAP = 14;
-  const x0 = (1024 - (N * TS + (N - 1) * GAP)) / 2, y0 = 84;
-  for (let i = 0; i < N; i++) {
+  // 角色网格(几何与鼠标热区同源, 卡数自适应)
+  const gridRects = _selGridRects();
+  for (let i = 0; i < ROSTER.length; i++) {
     const cid = ROSTER[i], c = DATA[cid];
-    const x = x0 + i * (TS + GAP), on = i === cursor;
+    const rc = gridRects[i], TS = rc.ts;
+    const x = rc.x + 3, y0 = rc.y + 3, on = i === cursor;
     ctx.fillStyle = on ? '#2a2340' : '#151220';
     ctx.fillRect(x - 3, y0 - 3, TS + 6, TS + 6);
     ctx.fillStyle = on ? c.theme : '#252b3d';

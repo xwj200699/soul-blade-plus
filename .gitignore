@@ -14,3 +14,10 @@ Thumbs.db
 desktop.ini
 .DS_Store
 node_modules/
+_build/__pycache__/
+
+# 校园换皮的参考素材不入仓(与 _build/_frames-README.md 同一原则):
+# 开始界面.png = 学校真实宣传照, 仓库只放像素化产物 assets/uilib/titlebg-campus.png
+开始界面.png
+# 图/ = bake_uilib.py 的旧输出目录, 现已就地烘焙到 assets/uilib, 该副本冗余
+图/

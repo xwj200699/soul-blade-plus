@@ -1,28 +1,43 @@
-# 血刃 CRIMSON EDGE · 群英乱斗
+# 电专 ELECTRIC POWER COLLEGE · 校园乱斗
 
-[![Play](https://img.shields.io/badge/▶_在线试玩-血刃_M1.3-c9182b?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html)
+[![Play](https://img.shields.io/badge/▶_在线试玩-电专_校园换皮版-2a66a8?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/)
+[![Play-old](https://img.shields.io/badge/▶_在线试玩-血刃_M1.3(换皮前)-c9182b?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html)
 [![NewFight](https://img.shields.io/badge/▶_在线试玩-New_Fight_Q版-ff6b9d?style=for-the-badge)](https://evans777max.github.io/soul-blade-plus/New%20Fight/)
 
-![Version](https://img.shields.io/badge/version-M1.3_闯关版-e8b23a)
+![Version](https://img.shields.io/badge/version-校园换皮版-f0c83c)
+![Roster](https://img.shields.io/badge/花名册-九人-50a0dc)
 ![NewFight](https://img.shields.io/badge/分支-New_Fight_M2-ff9dbe)
 ![HTML5](https://img.shields.io/badge/HTML5-单文件离线-e34f26?logo=html5&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-零依赖-f7df1e?logo=javascript&logoColor=black)
 ![Canvas](https://img.shields.io/badge/Canvas_2D-程序化像素美术-59d96e)
 ![WebAudio](https://img.shields.io/badge/WebAudio-运行时合成音频-7fd3ff)
-![Verified](https://img.shields.io/badge/真实浏览器验收-37%2F37_·_33%2F33_PASS-2ea44f)
+![Verified](https://img.shields.io/badge/无头验收-smoke_+_campus_probe_PASS-2ea44f)
 ![License](https://img.shields.io/badge/用途-学习研究_·_非商用-8a4ae0)
 
-单文件像素格斗游戏。始于对 [soul-blade.pages.dev](https://soul-blade.pages.dev) 引擎的学习性深化改造（非商用）；自 **M1.2 起更名「血刃」并完成视觉资产全面自产化**——UI 层不再包含上游项目的任何美术资产，拥有独立设计身份（青铜·雷紋体系，见 `artlib/README.md`）。
+单文件像素格斗游戏。始于对 [soul-blade.pages.dev](https://soul-blade.pages.dev) 引擎的学习性深化改造（非商用）；自 **M1.2 起更名「血刃」并完成视觉资产全面自产化**——UI 层不再包含上游项目的任何美术资产。当前版本在此基础上做了**校园换皮**：视觉体系从「青铜·雷紋」换成「**电力·蓝金**」（见 `artlib/bake_uilib.py`），标题页换成像素化的校园夜雷底图，并加入两名校园角色。
 
 ## 🎮 在线试玩
 
 | 版本 | 链接 |
 |---|---|
-| **血刃 M1.3 闯关版**（单文件成品，推荐） | [立即游玩](https://evans777max.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html) |
-| 血刃 开发版（多文件最新源码） | [立即游玩](https://evans777max.github.io/soul-blade-plus/) |
+| **电专 校园换皮版**（多文件最新源码，推荐） | [立即游玩](https://evans777max.github.io/soul-blade-plus/) |
+| 血刃 M1.3 闯关版（换皮前的单文件成品） | [立即游玩](https://evans777max.github.io/soul-blade-plus/发布/血刃-M1.3-闯关版.html) |
 | **New Fight Q版格斗**（玩偶画风分支·M2） | [立即游玩](https://evans777max.github.io/soul-blade-plus/New%20Fight/) |
 
 > 键鼠双通。P1: WASD + J轻 K重 U必杀 I超必；详细键位见下文。
+> 本地跑多文件版请起 HTTP（`python -m http.server`）——`file://` 直开会因浏览器 canvas 污染策略把抠底 UI 资产降级成程序化回退。
+
+## 校园换皮做了什么
+
+| 模块 | 内容 |
+|---|---|
+| 标题页 | 校园夜雷照片 → `artlib/bake_titlebg_campus.py` 像素化（256×144 降采样 + 24 色量化 + NEAREST ×4）；字标改「电专 / ELECTRIC POWER COLLEGE」，标题块整体上移避让底图校名招牌 |
+| UI 体系 | `assets/uilib` 全量重烘焙为电力蓝金（电流锯齿纹 / 六边形绝缘子 / 闪电 / 高压塔母题） |
+| 花名册 7→9 | **博士**（白大褂+护目镜+笔电，TECH zoner）、**肉盾**（安全帽+绝缘工装+防爆盾，`dmgTaken 0.8` 抗打）；精灵图由 `_build/bake_roster3.py` 复用原烘焙管线产出 |
+| 远程普攻 | 后羿改「速射箭 / 落日重箭 / 落日·三連」，博士为「代码碎片 / 编译爆轰 / 死循环三线程」——普攻不再有近身判定，新增 `sunarrow` `codeshard` `datapack` 三种弹体 |
+| 招式演出 | 新增数据驱动的 `d.flair` 钩子（聚气/冲击环/地面激波/光柱/光束/花瓣爆/白闪/震屏/招式喊话），九人 18 个必杀+超必各配签名演出 |
+| 数值 | 基础血量 100→**150**（`fighter.js` 的 `BASE_HP`），伤害/削防/破防/气收益统一系数上调（`roster.js` 末尾的 `K`，一处可回退） |
+| 剧情 | STORY 三幕改为**雷雨夜校园被入侵**：校门与中心广场 → 实训楼机房 → 主楼穹顶变电中枢，结算「全校复电」 |
 
 ## 目录结构
 
@@ -30,10 +45,20 @@
 发布/     成品（双击即玩）: 血刃-M1.3-闯关版.html(最新) · 血刃-M1.3-实测视频.mp4 ·
           血刃-M1.2 · 刀魂PLUS-M1.1/M1/M0(历史版本) · 对应zip
 文档/     各里程碑 Prompt · 改动说明 · 测试报告 · 血刃-M1.3-测试截图/(真实浏览器证据)
-artlib/   独立美术资产库单元: bake_uilib.py 生成器 + 设计规范 README + preview.png
+artlib/   独立美术资产库单元: bake_uilib.py(电力·蓝金 UI 生成器) +
+          bake_titlebg_campus.py(校园底图像素化) + 设计规范 README + preview.png
 js/ css/ assets/ index.html   多文件源码版（开发迭代用; assets/uilib=自产 UI 资产）
 _build/   构建与验证管线（烘焙器/打包器/无头冒烟/平衡遥测/Puppeteer 验收/录像 runner）
+          bake_roster3.py=校园双角色烘焙 · probe_campus.node.js=双角色与全员演出验收
           抽帧器 extract_frames.node.js 的参考素材因版权不入仓, 见 _frames-README.md
+          标题底图源照(开始界面.png)同样不入仓, 见 bake_titlebg_campus.py 头注
+```
+
+## 验收
+
+```bash
+node _build/smoke_m13.node.js     # 全量无头冒烟(资产审计/九人尺寸/模式隔离/鼠标层/超必/闯关)
+node _build/probe_campus.node.js  # 博士与肉盾端到端 + 九人 63 招演出冒烟
 ```
 
 ## 玩法

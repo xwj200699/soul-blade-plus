@@ -2,6 +2,10 @@
    dash / backdash (i-frame dodge), block, knockdown, cinematic supers. */
 'use strict';
 
+/* 英雄基础血量。原为写死的 100; 抬到 150 后所有血条/完胜判定/训练回血都按
+   f.maxHp 归一化(唯一例外 quest.js 的玩家血条已同步改掉)。角色可用 c.maxHp 覆盖。 */
+const BASE_HP = 150;
+
 class Fighter {
   constructor(charId, x, facing, world) {
     this.c = DATA[charId];
@@ -9,7 +13,7 @@ class Fighter {
     this.x = x; this.y = STAGE.ground;
     this.vx = 0; this.vy = 0;
     this.facing = facing;
-    this.maxHp = 100; this.hp = 100; this.meter = 0;
+    this.maxHp = this.c.maxHp || BASE_HP; this.hp = this.maxHp; this.meter = 0;
     this.wins = 0;
     this.state = 'idle'; this.stateT = 0;
     this.anim = { name: 'idle', t: 0, frame: 0, done: false };
@@ -408,6 +412,9 @@ class Fighter {
         }
       }
     }
+    // 招式演出层(数据驱动 d.flair): fx 只在没有烘焙月牙时才画, 所以必杀/超必的
+    // 排场必须走这条独立钩子 —— 与 smear 叠加, 不抢它的位
+    if (d.flair && m.t === d.startup + (d.flair.delay || 0)) this.playFlair(d.flair);
     // 俯冲斩速度感: 下坠期间密集残影拖尾(影·墜滅)
     if (d.dive && !m.landed && m.t >= d.startup && m.t % 2 === 0) {
       Effects.ghost(this.spriteParams());
@@ -872,6 +879,36 @@ class Fighter {
     }
   }
 
+  /* 数据驱动的招式演出(d.flair): 一组可选开关, 让每个角色的必杀/超必有专属排场。
+     全部字段可选, 缺省用角色 theme 配色; 坐标以出招者为原点、按朝向镜像。
+       x/y 演出中心偏移 · delay 相对 startup 的触发延迟
+       converge 聚气粒子数 · ring 冲击环点数 · shock 地面激波环数
+       spark 星屑数(sparkPow 力度) · pillar 冲天光柱 · beam 横贯光束
+       stars/cut 收束已有钉星/刀线 · dust 尘暴 · rise 上升光屑 · petals 花瓣爆
+       flash 全屏闪 alpha · shake 震屏 · text 招式喊话 · sfx 额外音效 */
+  playFlair(F) {
+    const dir = this.facing;
+    const cx = this.x + dir * (F.x !== undefined ? F.x : 60);
+    const cy = this.y + (F.y !== undefined ? F.y : -95);
+    const c1 = F.color || this.c.theme2 || '#ffe27a';
+    const c2 = F.color2 || this.c.theme || '#ffffff';
+    if (F.converge) Effects.converge(this.x, this.y - 90, [c1, c2, '#ffffff'], F.converge, F.convergeR || 78);
+    if (F.ring) Effects.ring(cx, cy, c1, F.ring === true ? 16 : F.ring);
+    if (F.shock) for (let i = 0; i < F.shock; i++) Effects.shockRing(cx + dir * i * 30, this.y, c1, i * 4);
+    if (F.spark) Effects.spark(cx, cy, dir, [c1, c2, '#ffffff'], F.spark, F.sparkPow || 6);
+    if (F.pillar) Effects.pillar(cx, this.y, c1);
+    if (F.beam) Effects.beam(this.x + dir * 44, cy, dir, { core: '#ffffff', edge: c1, glow: c2, life: F.beam === true ? 26 : F.beam, maxW: F.beamW || 16 });
+    if (F.stars) Effects.burstPinStars();
+    if (F.cut) Effects.burstCutLines();
+    if (F.dust) Effects.dust(this.x, this.y, F.dust, dir);
+    if (F.rise) Effects.rise(this.x, this.y, c1, F.rise);
+    if (F.petals) Effects.petalBurst(cx, cy, F.petals);
+    if (F.flash) Effects.flashFrame({ alpha: F.flash, t: F.flashT || 3, color: F.flashColor || '#ffffff' });
+    if (F.shake) this.world.shake(F.shake, F.shakeT || 10);
+    if (F.text) Effects.text(this.x, this.y - (F.textY || 200), F.text, c1, F.textSize || 15);
+    if (F.sfx) AudioSys.sfx(F.sfx);
+  }
+
   // ---- receiving hits -----------------------------------------------------
   /* returns 'block' | 'crush' | 'hit' */
   receiveHit(info, attacker) {
@@ -903,7 +940,8 @@ class Fighter {
 
     const wasAir = !this.grounded; // 在挑空 pop 之前采样: 本次是否空中受击
     const scale = attacker.comboScale(this);
-    const dmg = Math.max(1, Math.round(info.dmg * scale));
+    // c.dmgTaken: 角色级减伤系数(肉盾 0.8) —— maxHp 保持 100, HUD/完胜判定不受影响
+    const dmg = Math.max(1, Math.round(info.dmg * scale * (this.c.dmgTaken || 1)));
     this.hp = Math.max(0, this.hp - dmg);
     this.lastHurt = this.world.tick;
     this.flash = 6;

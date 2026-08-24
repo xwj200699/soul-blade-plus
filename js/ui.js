@@ -764,6 +764,9 @@ const UI = {
     ctx.restore();
   },
 
+  // 标题菜单项几何(六项紧排): drawTitle 绘制 + select2 鼠标热区 + smoke 断言 同源。
+  titleItemRect(i) { return { x: 322, y: 318 + i * 35, w: 380, h: 30 }; },
+
   // loadingP (0..1): boot mode — same page, load bar in the PRESS ANY KEY slot
   drawTitle(ctx, G, loadingP) {
     const V = this.variant || {};
@@ -915,11 +918,12 @@ const UI = {
 
     // menu: lacquered wood boards with a folding-fan cursor
     // bilingual menu per language policy: EN primary + JP kanji accent
-    const items = [['STORY', '物語'], ['VS CPU', '決闘'], ['LOCAL VS', '対戦'], ['TRAINING', '修行'], ['HOW TO PLAY', '心得']]; // M1.3: 闯关置顶
+    const items = [['STORY', '物語'], ['CO-OP 副本', '双人'], ['VS CPU', '決闘'], ['LOCAL VS', '対戦'], ['TRAINING', '修行'], ['HOW TO PLAY', '心得']]; // M1.4: 双人副本
     const MP = this.ua.panel, FAN = this.ua.cursor;
     items.forEach((it, i) => {
       const sel = G.titleSel === i;
-      const bx = 322, by = 338 + i * 38, bw = 380, bh = 34; // M1.3: 五项紧排, 不压底部提示
+      const rc = UI.titleItemRect(i);
+      const bx = rc.x, by = rc.y, bw = rc.w, bh = rc.h; // 六项紧排(几何与鼠标热区同源)
       if (MP) {
         if (sel) { ctx.save(); ctx.filter = 'brightness(1.5) saturate(1.15)'; }
         this.nine(ctx, MP, bx, by, bw, bh, 0.13);
@@ -930,7 +934,7 @@ const UI = {
         }
       } else if (sel) {
         ctx.fillStyle = 'rgba(255,197,49,0.14)';
-        ctx.fillRect(332, 341 + i * 38, 360, 30);
+        ctx.fillRect(bx + 10, by + 2, bw - 20, bh - 4);
       }
       if (sel && G.tick % 30 < 22) {
         if (FAN) {
@@ -940,7 +944,7 @@ const UI = {
           ctx.drawImage(FAN.cv, -(bx + bw + fw + 10), by + bh / 2 - fh / 2, fw, fh);
           ctx.restore();
         } else {
-          this.pixText(ctx, '▶', 352, 361 + i * 38, { size: 16, color: '#ffc531' });
+          this.pixText(ctx, '▶', bx + 30, by + bh / 2 + 6, { size: 16, color: '#ffc531' });
         }
       }
       // EN + JP drawn as one optically centered line, baseline-middle so both
@@ -958,7 +962,7 @@ const UI = {
       });
     });
 
-    const descs = ['剧情闯关 · 三幕推进 · 小兵与关底 BOSS', '挑战电脑 · 三局两胜', '同屏双人对决 · P1键盘左侧 P2方向键+右手簇', '木桩修行 · 无限气 · 自动回血', '完整键位与系统图鉴'];
+    const descs = ['剧情闯关 · 五幕推进 · 小兵与关底 BOSS', '双人同屏闯副本 · P1键盘 P2方向键+右手簇 · 共享残机', '挑战电脑 · 三局两胜', '同屏双人对决 · P1键盘左侧 P2方向键+右手簇', '木桩修行 · 无限气 · 自动回血', '完整键位与系统图鉴'];
     this.pixText(ctx, descs[G.titleSel] || '', 512, 532, { size: 10, align: 'center', color: '#9a8f78' });
     this.pixText(ctx, 'W/S SELECT · J OK · M MUTE', 512, 552, { size: 12, align: 'center', color: '#5d6784' });
     ctx.restore(); // 结束菜单淡入 alpha

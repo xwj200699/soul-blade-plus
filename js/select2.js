@@ -71,30 +71,30 @@ updateTitle = function () {
   }
   if (G.titleIntro < 30) { G.titleIntro++; return; }
   G.p2IsAI = true;                          // 回到标题即复位模式痕迹
+  const NITEMS = 6;
   const go = () => {
     AudioSys.sfx('menuSel');
-    // M1.3 五项: 0=STORY 闯关, 1=VS CPU, 2=LOCAL VS, 3=TRAINING, 4=HOWTO
-    if (G.titleSel <= 3) {
-      G.select = {
-        phase: 'char', cursor: 0, cursor2: 0, p1: null, p2: null,
-        diff: 'normal', diffCursor: 1, stageCursor: 0, vsT: 0,
-        quest: G.titleSel === 0,
-        training: G.titleSel === 3,
-        localvs: G.titleSel === 2,
-      };
-      G.screen = 'select';
-    } else {
-      G.screen = 'controls';
-    }
+    // M1.4 六项菜单: 0=STORY 单人闯关, 1=CO-OP 双人副本, 2=VS CPU, 3=LOCAL VS,
+    //               4=TRAINING, 5=HOWTO
+    if (G.titleSel === 5) { G.screen = 'controls'; return; }
+    G.select = {
+      phase: 'char', cursor: 0, cursor2: 0, p1: null, p2: null,
+      diff: 'normal', diffCursor: 1, stageCursor: 0, vsT: 0,
+      quest: G.titleSel === 0 || G.titleSel === 1,
+      coop: G.titleSel === 1,
+      training: G.titleSel === 4,
+      localvs: G.titleSel === 3,
+    };
+    G.screen = 'select';
   };
-  if (Input.consume('KeyW')) { G.titleSel = (G.titleSel + 4) % 5; AudioSys.sfx('menuMove'); }
-  if (Input.consume('KeyS')) { G.titleSel = (G.titleSel + 1) % 5; AudioSys.sfx('menuMove'); }
+  if (Input.consume('KeyW')) { G.titleSel = (G.titleSel + NITEMS - 1) % NITEMS; AudioSys.sfx('menuMove'); }
+  if (Input.consume('KeyS')) { G.titleSel = (G.titleSel + 1) % NITEMS; AudioSys.sfx('menuMove'); }
   if (Input.consume('KeyJ') || Input.consume('Enter')) return go();
-  // M1.3 鼠标: 悬停选中(仅鼠标在动时) + 点击确认; 菜单条几何与 drawTitle 一致
-  for (let i = 0; i < 5; i++) {
-    const by = 338 + i * 38;
-    if (Input.hoverActive(322, by, 380, 34) && G.titleSel !== i) { G.titleSel = i; AudioSys.sfx('menuMove'); }
-    if (Input.click(322, by, 380, 34)) { G.titleSel = i; return go(); }
+  // M1.3 鼠标: 悬停选中(仅鼠标在动时) + 点击确认; 菜单条几何与 drawTitle 同源
+  for (let i = 0; i < NITEMS; i++) {
+    const r = UI.titleItemRect(i);
+    if (Input.hoverActive(r.x, r.y, r.w, r.h) && G.titleSel !== i) { G.titleSel = i; AudioSys.sfx('menuMove'); }
+    if (Input.click(r.x, r.y, r.w, r.h)) { G.titleSel = i; return go(); }
   }
 };
 
@@ -138,7 +138,8 @@ updateSelect = function () {
     const confirm = () => {
       s.p1 = ROSTER[s.cursor];
       AudioSys.sfx('menuSel');
-      if (s.quest) { s.phase = 'diff'; }    // M1.3 闯关: 选角后直接选难度
+      if (s.coop) { s.phase = 'char2'; s.cursor2 = (s.cursor + 1) % N; } // 双人副本: 选 P2
+      else if (s.quest) { s.phase = 'diff'; }    // 单人闯关: 选角后直接选难度
       else if (s.localvs) { s.phase = 'char2'; s.cursor2 = (s.cursor + 1) % N; }
       else {
         const pool = ROSTER.filter(id => id !== s.p1);
@@ -157,7 +158,7 @@ updateSelect = function () {
   } else if (s.phase === 'char2') {
     const confirm2 = () => {
       s.p2 = ROSTER[s.cursor2];             // 允许与 P1 同角色(镜像内战)
-      s.phase = 'stage';
+      s.phase = s.coop ? 'diff' : 'stage';  // 双人副本: 选完 P2 直接选难度(舞台由关卡决定)
       AudioSys.sfx('menuSel');
     };
     // P2 光标: 方向键(P2 本尊) + A/D(帮选) 都可
@@ -168,7 +169,7 @@ updateSelect = function () {
       if (_inR('hoverActive', rc) && s.cursor2 !== i) { s.cursor2 = i; AudioSys.sfx('menuMove'); }
       if (_inR('click', rc)) { s.cursor2 = i; confirm2(); }
     });
-    if (Input.consume('Numpad2') || Input.consume('Period') || Input.consume('BracketRight') || Input.consume('KeyK') || Input.consume('Escape')) {
+    if (Input.consume('Numpad0') || Input.consume('Numpad2') || Input.consume('Period') || Input.consume('BracketRight') || Input.consume('KeyK') || Input.consume('Escape')) {
       s.phase = 'char'; s.cursor = ROSTER.indexOf(s.p1);
       AudioSys.sfx('menuBack');
     }
@@ -196,6 +197,7 @@ updateSelect = function () {
   } else if (s.phase === 'diff') {
     const confirmDiff = () => {
       s.diff = ['easy', 'normal', 'hard'][s.diffCursor];
+      if (s.coop) { AudioSys.sfx('fight'); Quest.startCoop(s.p1, s.p2 || s.p1, s.diff); return; } // 双人副本入口
       if (s.quest) { AudioSys.sfx('fight'); Quest.start(s.p1, s.diff); return; } // M1.3 闯关入口
       s.phase = 'vs'; s.vsT = 0;
       AudioSys.sfx('fight');
@@ -207,7 +209,7 @@ updateSelect = function () {
       if (_inR('hoverActive', rc) && s.diffCursor !== i) { s.diffCursor = i; AudioSys.sfx('menuMove'); }
       if (_inR('click', rc)) { s.diffCursor = i; confirmDiff(); }
     });
-    if (Input.consume('KeyK') || Input.consume('Escape')) { s.phase = s.quest ? 'char' : 'stage'; AudioSys.sfx('menuBack'); }
+    if (Input.consume('KeyK') || Input.consume('Escape')) { s.phase = s.coop ? 'char2' : (s.quest ? 'char' : 'stage'); AudioSys.sfx('menuBack'); }
   } else if (s.phase === 'vs') {
     s.vsT++;
     if (s.vsT >= (s.training ? 60 : 100)) {
@@ -235,11 +237,12 @@ UI.drawSelect = function (ctx, G) {
 UI._drawCharGrid = function (ctx, G, s) {
   const p2turn = s.phase === 'char2';
   const cursor = p2turn ? s.cursor2 : s.cursor;
-  // 标头: 谁在选 (P1 金 / P2 青)
-  if (s.localvs) {
+  // 标头: 谁在选 (P1 金 / P2 青)。双人副本(coop)与 LOCAL VS 一样是两人各选一角
+  if (s.localvs || s.coop) {
     this.pixText(ctx, p2turn ? 'P2 SELECT' : 'P1 SELECT', 512, 40,
       { size: 20, align: 'center', color: p2turn ? '#7ecbff' : '#ffe27a' });
-    this.pixText(ctx, p2turn ? '方向键 选择 · 小键盘1 / , 确认 · 小键盘2 / . 返回' : 'A/D 选择 · J 确认 · K 返回标题',
+    const p2hint = s.coop ? '方向键 移动 · 小键盘 1 确认 · 0 返回' : '方向键 选择 · 小键盘1 / , 确认 · 小键盘2 / . 返回';
+    this.pixText(ctx, p2turn ? p2hint : (s.coop ? '双人副本 · A/D 选择 · J 确认 · K 返回' : 'A/D 选择 · J 确认 · K 返回标题'),
       512, 66, { size: 10, align: 'center', color: '#9aa3bd' });
     if (s.p1) this.pixText(ctx, `P1 ✓ ${DATA[s.p1].cn}`, 92, 40, { size: 11, color: '#ffe27a' });
   } else {
@@ -271,7 +274,7 @@ UI._drawCharGrid = function (ctx, G, s) {
       ctx.lineWidth = 3;
       ctx.strokeRect(x - 3 - p, y0 - 3 - p, TS + 6 + p * 2, TS + 6 + p * 2);
     }
-    if (s.localvs && s.p1 === cid) {        // P1 已锁定角标
+    if ((s.localvs || s.coop) && s.p1 === cid && p2turn) { // P1 已锁定角标(选 P2 时显示)
       ctx.fillStyle = '#ffe27a';
       ctx.fillRect(x, y0, 26, 14);
       this.pixText(ctx, '1P', x + 13, y0 + 11, { size: 8, align: 'center', color: '#1b1410' });
@@ -422,7 +425,7 @@ UI._drawVs = function (ctx, G, s) {
     ctx.fillStyle = '#252b3d';
     ctx.fillRect(0, 540, 1024, 1);
     UI.pixText(ctx, 'P1  WASD移动 · 双击AD冲刺 · J轻 K重 U必杀 I超必', 258, 556, { size: 9, align: 'center', color: '#ffe27a' });
-    UI.pixText(ctx, 'P2  方向键移动 · ,轻 .重 /必杀 右Shift超必 (或小键盘1/2/4/5)', 766, 556, { size: 9, align: 'center', color: '#7ecbff' });
+    UI.pixText(ctx, 'P2  方向键移动 · 双击←→冲刺 · 小键盘 1轻 2重 3必杀 0超必', 766, 556, { size: 9, align: 'center', color: '#7ecbff' });
     UI.pixText(ctx, '通用  ESC/P暂停 · M静音 · -/=音乐 9/0音效', 512, 570, { size: 8, align: 'center', color: '#8892ad' });
   };
 })();

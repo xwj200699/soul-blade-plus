@@ -17,9 +17,9 @@ const Input = (() => {
     'KeyA', 'KeyD', 'KeyW', 'KeyS', 'KeyJ', 'KeyK', 'KeyU', 'KeyI',
     'KeyM', 'KeyH', 'KeyP', 'KeyR', 'KeyT', 'Escape', 'Enter', 'Space',
     'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-    'Numpad1', 'Numpad2', 'Numpad4', 'Numpad5',            // M1: P2 攻击键
-    'BracketLeft', 'BracketRight', 'Semicolon', 'Quote',   // M1: P2 无小键盘备用
-    'Comma', 'Period', 'Slash', 'ShiftRight',              // M1.3: P2 笔记本友好簇(紧邻方向键)
+    'Numpad0', 'Numpad1', 'Numpad2', 'Numpad3', 'Numpad4', 'Numpad5',  // P2 技能(数字小键盘)
+    'BracketLeft', 'BracketRight', 'Semicolon', 'Quote',   // (旧 P2 备用键, 仍拦默认行为)
+    'Comma', 'Period', 'Slash', 'ShiftRight',              // M1.4: 仅菜单 P2 确认/返回仍用; 战斗内 P2 已改小键盘
   ]);
 
   window.addEventListener('keydown', (e) => {
@@ -141,19 +141,20 @@ function humanPad() {
   return p;
 }
 
-/* M1: 玩家二手柄 —— 方向键移动/下蹲, 小键盘 1/2/4/5 = 轻/重/必杀/超必。
-   M1.3: 主推笔记本友好簇 , . / 右Shift(紧邻方向键, 无小键盘/NumLock 也能玩);
-   [ ] ; ' 旧备用保留。防御同样是拉住远离方向。 */
+/* 玩家二手柄 —— 移动: 方向键(上跳/下蹲/左右走, 双击左右冲刺)。
+   技能: 数字小键盘(用户指定) —— 1=轻 2=重 3=必杀 0=超必, 也接受右侧 4/5
+   (1/2/4/5 恰好是小键盘上一个 2x2 方块, 镜像 P1 的 J/K/U/I)。
+   防御同样是拉住远离方向。 */
 function humanPad2() {
   const p = emptyPad();
   p.left = Input.isDown('ArrowLeft');
   p.right = Input.isDown('ArrowRight');
   p.crouch = Input.isDown('ArrowDown');
   p.jump = Input.consume('ArrowUp');
-  p.light = Input.consume('Numpad1') || Input.consume('Comma') || Input.consume('BracketLeft');
-  p.heavy = Input.consume('Numpad2') || Input.consume('Period') || Input.consume('BracketRight');
-  p.special = Input.consume('Numpad4') || Input.consume('Slash') || Input.consume('Semicolon');
-  p.super = Input.consume('Numpad5') || Input.consume('ShiftRight') || Input.consume('Quote');
+  p.light = Input.consume('Numpad1');
+  p.heavy = Input.consume('Numpad2');
+  p.special = Input.consume('Numpad3') || Input.consume('Numpad4');
+  p.super = Input.consume('Numpad0') || Input.consume('Numpad5');
   p.dashL = Input.consumeDash('left2');
   p.dashR = Input.consumeDash('right2');
   return p;

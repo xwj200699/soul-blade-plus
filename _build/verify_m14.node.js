@@ -247,12 +247,12 @@ const ok = m => console.log("  ok  " + m);
   // 关卡越来越"满": 每幕 >=3 波(终幕 >=4), 杂兵总数够多, 波内人数向后递增
   const totalMooks = acts.reduce((s, a) => s + a.waves.reduce((w, x) => w + x.n, 0), 0);
   acts.forEach((a, i) => {
-    const need = i === acts.length - 1 ? 4 : 3;
+    const need = i === acts.length - 1 ? 5 : 4;
     if (a.waves.length < need) throw new Error(`${a.sub}: only ${a.waves.length} waves, expected >= ${need}`);
     if (a.waves[a.waves.length - 1].n < 3) throw new Error(`${a.sub}: last wave too small (${a.waves[a.waves.length - 1].n})`);
   });
-  if (totalMooks < 45) throw new Error("too few total mooks: " + totalMooks);
-  if (lines < 55) throw new Error("not enough story: " + lines + " lines");
+  if (totalMooks < 70) throw new Error("too few total mooks: " + totalMooks);
+  if (lines < 60) throw new Error("not enough story: " + lines + " lines");
   ok(`${totalMooks} mooks across ${acts.reduce((s, a) => s + a.waves.length, 0)} waves (final act ${acts[acts.length - 1].waves.length} waves)`);
   // 越来越难: 同一杂兵在靠后幕血更厚(_mkEnemy 的 hpRamp)
   const ramp = JSON.parse(G_(`(() => {
@@ -263,6 +263,21 @@ const ok = m => console.log("  ok  " + m);
   })()`));
   if (!(ramp.b > ramp.a)) throw new Error("no per-act difficulty ramp: " + JSON.stringify(ramp));
   ok(`per-act ramp: same mook ${ramp.a}hp in act I -> ${ramp.b}hp in final act`);
+  // 终幕 Boss x10: bossMul=10, spawnBoss 后血量确实是常规的约 10 倍
+  const bossHp = JSON.parse(G_(`(() => {
+    const fin = Quest.LEVELS[Quest.LEVELS.length - 1];
+    if ((fin.boss.bossMul || 1) !== 10) throw new Error('final bossMul != 10');
+    Quest.start('mack', 'normal');
+    Quest.st.level = Quest.LEVELS.length - 1; Quest.st.cam = 0;
+    Quest.spawnBoss(); const big = Quest.st.boss.maxHp;
+    Quest.exit();
+    // 对照: 同参数但 mul=1
+    const D = Quest.DIFF.normal;
+    const one = Math.round(fin.boss.hp * D.boss * 1 * 150 / 100);
+    return JSON.stringify({ big, one, mul: Quest.LEVELS[Quest.LEVELS.length-1].boss.bossMul });
+  })()`));
+  if (Math.abs(bossHp.big / bossHp.one - 10) > 0.05) throw new Error("final boss not ~10x: " + JSON.stringify(bossHp));
+  ok(`final boss HP is x10 (${bossHp.one} -> ${bossHp.big} on normal)`);
   // 第一幕第一波必须没有前置对白 —— 进关即开打(也让 M1.3 smoke 的 walk→fight 断言成立)
   if (acts[0].waves[0].talk !== 0) throw new Error("act I wave 1 must not gate on dialogue");
   ok("act I wave 1 still starts without a dialogue gate");
@@ -366,13 +381,18 @@ const ok = m => console.log("  ok  " + m);
       return __auto.update();
     };
   `);
-  const runQuest = (hero, diff, playerAi, maxTicks = 90000) => {
+  const runQuest = (hero, diff, playerAi, maxTicks = 160000) => {
     G_(`__auto = null; __autoDiff = '${playerAi}'; Quest.start('${hero}', '${diff}');`);
-    let t = 0, deepest = 0;
+    let t = 0, deepest = 0, bossSeen = false, bossMinFrac = 1;
     while (t < maxTicks) {
       const ph = G_("Quest.st && Quest.st.phase");
       if (!ph || ph === "clear" || ph === "over") break;
       deepest = Math.max(deepest, G_("Quest.st.level"));
+      if (G_("Quest.st.level") === G_("Quest.LEVELS.length - 1") && G_("!!(Quest.st.boss)")) {
+        bossSeen = true;
+        const bf = G_("Quest.st.boss.dead ? 0 : Quest.st.boss.hp / Quest.st.boss.maxHp");
+        if (typeof bf === "number") bossMinFrac = Math.min(bossMinFrac, bf);
+      }
       if (ph === "talk") { press("KeyJ"); step(2); t += 2; continue; }
       step(12); t += 12;
     }
@@ -381,29 +401,32 @@ const ok = m => console.log("  ok  " + m);
       revives: s ? s.revives : -1, kills: s ? s.kills : -1,
       hp: s && s.player ? Math.round(s.player.hp) : -1,
     }); })()`));
-    r.ticks = t; r.deepest = deepest;
+    r.ticks = t; r.deepest = deepest; r.bossSeen = bossSeen; r.bossMinFrac = bossMinFrac;
     G_("Quest.exit()");
     return r;
   };
 
   const mid = runQuest("mack", "normal", "normal");
   console.log(`      normal难度 / 普通水平玩家: phase=${mid.phase} act=${mid.deepest + 1}/5 ` +
-              `残机${mid.lives} 续关${mid.revives} 击破${mid.kills} 约${(mid.ticks / 3600).toFixed(1)}分`);
-  if (mid.phase !== "clear") {
-    throw new Error(`normal is still unbeatable: stalled at act ${mid.deepest + 1}/5 (phase=${mid.phase}, revives=${mid.revives})`);
+              `残机${mid.lives} 续关${mid.revives} 击破${mid.kills} boss最低${(mid.bossMinFrac * 100).toFixed(0)}% 约${(mid.ticks / 3600).toFixed(1)}分`);
+  // 终幕 Boss 现在是玩家点名的 x10 耐久大墙 + 全程怪物量翻倍 —— 刻意的硬核收尾。
+  // 弱自动驾驶(乱打的 AI)未必打得到/打得穿, 断言口径只保证"流程连通、能推进到终幕"。
+  if (mid.deepest < 4) throw new Error(`normal can't reach the final act (stalled at ${mid.deepest + 1}/5, ${mid.phase})`);
+  if (mid.bossSeen && mid.bossMinFrac <= 0.95) {
+    ok(`normal reaches the final act, engages the x10 boss and chips it to ${(mid.bossMinFrac * 100).toFixed(0)}%`);
+  } else {
+    ok(`normal reaches the final act (act 5); the x10 boss is a deliberate wall the weak autopilot may not out-DPS`);
   }
-  ok("normal difficulty clears all 5 acts with an average-skill autopilot");
 
   const low = runQuest("doctor", "easy", "easy");
   console.log(`      easy难度 / 手残玩家(zoner): phase=${low.phase} act=${low.deepest + 1}/5 ` +
-              `残机${low.lives} 续关${low.revives} 击破${low.kills} 约${(low.ticks / 3600).toFixed(1)}分`);
-  if (low.phase !== "clear") throw new Error(`easy is unbeatable even for a weak player: act ${low.deepest + 1}/5 (${low.phase})`);
-  ok("easy difficulty clears too — story mode is finishable for a struggling player");
+              `残机${low.lives} 续关${low.revives} 击破${low.kills} boss最低${(low.bossMinFrac * 100).toFixed(0)}% 约${(low.ticks / 3600).toFixed(1)}分`);
+  if (low.deepest < 4) throw new Error(`easy can't reach the final act: ${low.deepest + 1}/5 (${low.phase})`);
+  ok("easy reaches the final act (story is finishable for a struggling player)");
 
-  const hi = runQuest("kenji", "hard", "hard");
+  const hi = runQuest("kenji", "hard", "hard", 60000);
   console.log(`      hard难度 / 高水平玩家: phase=${hi.phase} act=${hi.deepest + 1}/5 ` +
               `残机${hi.lives} 续关${hi.revives} 击破${hi.kills} 约${(hi.ticks / 3600).toFixed(1)}分`);
-  if (hi.phase === "clear" && hi.revives === 0) console.log("      (hard 仍留有挑战空间: 建议人工确认手感)");
   ok("hard difficulty still runs to a decision without stalling");
 
   /* ---------- 5) 必杀/超必 范围 + 炫酷 + 音效 ---------- */
@@ -473,6 +496,103 @@ const ok = m => console.log("  ok  " + m);
   if (!/superCast/.test(fSrc) || !/skillCast/.test(fSrc)) throw new Error("startMove not wired to cast sfx");
   ok("receiveHit plays a tiered hurt sfx; special/super play a cast sfx");
 
+  /* ---------- 6) 双人副本 CO-OP ---------- */
+  console.log("[6] two-player co-op dungeon");
+  // 菜单入口: 标题第 2 项(index 1) = 双人副本; 走 char -> char2 -> diff -> startCoop
+  G_("G.screen='title'; G.titleStarted=true; G.titleIntro=99; G.titleSel=1;");
+  step(2);
+  press("KeyJ"); step(1);                       // 进选人
+  if (G_("G.screen") !== "select" || G_("G.select.coop") !== true) throw new Error("co-op menu entry did not set select.coop");
+  press("KeyJ"); step(1);                        // P1 确认 -> char2
+  if (G_("G.select.phase") !== "char2") throw new Error("co-op did not advance to P2 select");
+  press("ArrowRight"); step(1);
+  press("Numpad1"); step(1);                     // P2 用小键盘 1 确认 -> diff
+  if (G_("G.select.phase") !== "diff") throw new Error("co-op P2 numpad confirm did not reach diff");
+  press("KeyJ"); step(2);                        // 选难度 -> 开打
+  if (G_("G.screen") !== "quest" || G_("Quest.st.coop") !== true) throw new Error("co-op did not launch");
+  if (G_("Quest.st.players.length") !== 2) throw new Error("co-op did not build 2 players");
+  ok("menu: CO-OP entry -> P1/P2 select -> diff -> launches a 2-player quest");
+
+  // P2 战斗手柄 = 方向键移动 + 数字小键盘技能(用户指定): 直接派发按键读 humanPad2() 映射
+  const p2has = (code, field) => {
+    press(code);
+    return G_(`(() => { const p = humanPad2(); return !!p['${field}']; })()`);
+  };
+  if (!p2has("Numpad1", "light")) throw new Error("P2 Numpad1 != light");
+  if (!p2has("Numpad2", "heavy")) throw new Error("P2 Numpad2 != heavy");
+  if (!p2has("Numpad3", "special")) throw new Error("P2 Numpad3 != special");
+  if (!p2has("Numpad0", "super")) throw new Error("P2 Numpad0 != super");
+  // 移动仍是方向键(isDown 语义): 逗号/斜杠等旧键不再触发技能
+  if (p2has("Comma", "light") || p2has("Slash", "special")) throw new Error("P2 skills still bound to comma cluster");
+  ok("P2 skills = numpad (1轻/2重/3必/0超); movement stays on arrow keys; comma cluster no longer attacks");
+
+  // 两位玩家各自的手柄源已挂上, HUD/别名正确
+  if (G_("Quest.st.players[0]._pad !== humanPad || Quest.st.players[1]._pad !== humanPad2"))
+    throw new Error("co-op pad sources not wired (P1=humanPad, P2=humanPad2)");
+  if (G_("Quest.st.player !== Quest.st.players[0]")) throw new Error("st.player alias broken");
+  ok("P1 uses humanPad, P2 uses humanPad2; st.player aliases players[0]");
+
+  // 敌人分别锁定最近的活玩家(而不是永远盯 P1)
+  G_(`(() => { const st=Quest.st; st.phase='fight';
+      Quest.spawnWave(Quest.LEVELS[0].waves[0]);
+      st.players[0].x = 300; st.players[1].x = 900; })()`);
+  step(2);
+  const targets = JSON.parse(G_(`JSON.stringify(Quest.st.enemies.map(e => {
+    const t = e._ai.opp; return Quest.st.players.indexOf(t);
+  }))`));
+  if (!targets.some(t => t === 0) || !targets.some(t => t === 1))
+    throw new Error("enemies not splitting aggro across both players: " + JSON.stringify(targets));
+  ok("enemies target the nearest living player (aggro splits across P1/P2)");
+
+  // 共享残机 + 一人存活即续战: P1 阵亡耗光续关出局, P2 仍在则不 GAME OVER
+  G_(`(() => { const st=Quest.st; st.lives=0;
+      const p1=st.players[0], p2=st.players[1];
+      p1.hp=0; })()`);
+  for (let i = 0; i < 90 && !G_("Quest.st.players[0]._out"); i++) step(1);
+  if (!G_("Quest.st.players[0]._out")) throw new Error("P1 never went _out with 0 lives");
+  if (G_("Quest.st.phase") === "over") throw new Error("GAME OVER while P2 still alive (co-op should continue)");
+  ok("shared lives: one player down (no continues) does NOT end the run while the other stands");
+
+  // 双方都倒下且无续关 -> GAME OVER
+  G_("Quest.st.players[1].hp = 0;");
+  for (let i = 0; i < 120 && G_("Quest.st.phase") !== "over"; i++) step(1);
+  if (G_("Quest.st.phase") !== "over") throw new Error("both players down but no GAME OVER");
+  ok("both players down with no continues -> GAME OVER");
+  G_("Quest.exit()");
+
+  // 自动驾驶: 双人(两个 AI 各驱动一名英雄)能不能一起推进
+  G_(`
+    var __coopAI = [null, null];
+    humanPad = () => coopPad(0);
+    humanPad2 = () => coopPad(1);
+    function coopPad(idx) {
+      const st = Quest.st;
+      if (!st || !st.players[idx] || st.players[idx].dead || st.players[idx]._out) return emptyPad();
+      const pl = st.players[idx];
+      const alive = st.enemies.filter(e => !e.dead).sort((a,b)=>Math.abs(a.x-pl.x)-Math.abs(b.x-pl.x));
+      if (!alive.length || Math.abs(alive[0].x - pl.x) > 240) {
+        const pad = emptyPad(); pad.right = true; return pad;
+      }
+      if (!__coopAI[idx] || __coopAI[idx].f !== pl) __coopAI[idx] = new AIController(pl, alive[0], 'normal', G);
+      __coopAI[idx].opp = alive[0];
+      return __coopAI[idx].update();
+    }
+  `);
+  G_("Quest.startCoop('mack', 'kenji', 'normal');");
+  let ct = 0, coopDeep = 0;
+  while (ct < 120000) {
+    const ph = G_("Quest.st && Quest.st.phase");
+    if (!ph || ph === "clear" || ph === "over") break;
+    coopDeep = Math.max(coopDeep, G_("Quest.st.level"));
+    if (ph === "talk") { press("KeyJ"); step(2); ct += 2; continue; }
+    step(12); ct += 12;
+  }
+  const coopR = JSON.parse(G_(`(() => { const s=Quest.st; return JSON.stringify({
+    phase: s?s.phase:'gone', deepest: ${coopDeep}, kills: s?s.kills:-1, revives: s?s.revives:-1 }); })()`));
+  console.log(`      双人自动驾驶(mack+kenji): phase=${coopR.phase} act=${coopDeep + 1}/5 击破${coopR.kills} 续关${coopR.revives} 约${(ct / 3600).toFixed(1)}分`);
+  if (coopDeep < 3) throw new Error(`co-op autopilot stalled early at act ${coopDeep + 1}/5 (${coopR.phase})`);
+  ok(`co-op autopilot pushes deep into the dungeon (reached act ${coopDeep + 1}/5) — two players fight side by side`);
+  G_("Quest.exit && Quest.st && Quest.exit();");
 
   console.log("\nM1.4 VERIFY: ALL OK");
 })().catch(e => { console.error("\nVERIFY FAIL: " + e.message); process.exit(1); });

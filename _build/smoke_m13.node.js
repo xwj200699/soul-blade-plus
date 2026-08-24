@@ -116,39 +116,40 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   G_("G.fighters[0].state = 'idle'");
   console.log("crouch box OK", standH, "/", crouchH);
 
-  /* 2) char2 + mode isolation (M1.3: 五项菜单, LOCAL VS=2 / VS CPU=1; P2 逗号簇确认) */
-  G_("G.screen = 'title'; G.titleStarted = true; G.titleIntro = 99; G.titleSel = 2;");
+  /* 2) char2 + mode isolation (M1.4: 六项菜单, STORY=0 CO-OP=1 VS CPU=2 LOCAL VS=3 TRAINING=4 HOWTO=5) */
+  G_("G.screen = 'title'; G.titleStarted = true; G.titleIntro = 99; G.titleSel = 3;");
   press("KeyJ"); step(1);
   press("KeyJ"); step(1);
   if (G_("G.select.phase") !== "char2") throw new Error("no char2 phase");
   press("ArrowRight"); step(1);
-  press("Comma"); step(1);              // M1.3: 笔记本簇确认
+  press("Comma"); step(1);              // 菜单 P2 确认仍接受逗号簇
   if (G_("G.select.phase") !== "stage") throw new Error("P2 comma confirm failed");
   press("KeyJ"); step(1); step(110);
   if (G_("G.screen") !== "fight" || G_("G.p2IsAI") !== false) throw new Error("localvs broken");
-  // P2 逗号轻击可用
+  // 战斗内 P2 技能 = 数字小键盘(M1.4: 移动方向键 / 技能小键盘)
   G_("G.phase = 'fight'");
   G_("G.fighters[1].x = G.fighters[0].x + 80;");
-  press("Comma"); step(3);
+  press("Numpad1"); step(3);
   if (G_("G.fighters[1].state") !== "attack" && G_("G.fighters[1].move === null")) {
     // 允许 startup 已过: 只要不是从未响应
-    if (G_("G.fighters[1].anim.name").indexOf("attack") < 0) throw new Error("P2 comma attack not registered");
+    if (G_("G.fighters[1].anim.name").indexOf("attack") < 0) throw new Error("P2 numpad attack not registered");
   }
-  console.log("P2 comma-cluster OK");
-  G_("G.paused = false; G.screen = 'title'; G.titleStarted = true; G.titleIntro = 99; G.titleSel = 1;");
+  console.log("P2 numpad skills OK");
+  G_("G.paused = false; G.screen = 'title'; G.titleStarted = true; G.titleIntro = 99; G.titleSel = 2;"); // VS CPU
   step(2);
   press("KeyJ"); step(1); press("KeyJ"); step(1); press("KeyJ"); step(1); press("KeyJ"); step(1); step(110);
   if (G_("G.screen") !== "fight" || G_("G.p2IsAI") !== true || !G_("G.ai[1] && G.ai[1].plan !== undefined")) throw new Error("mode pollution");
-  console.log("char2 + mode isolation OK (5-item menu)");
+  console.log("char2 + mode isolation OK (6-item menu)");
 
   /* 2.5) 鼠标层: 标题点击 STORY 条 -> quest 选人; 点击网格第7格(貂蝉)选中 */
-  G_("G.paused = false; G.screen = 'title'; G.titleStarted = true; G.titleIntro = 99; G.titleSel = 4;");
+  G_("G.paused = false; G.screen = 'title'; G.titleStarted = true; G.titleIntro = 99; G.titleSel = 5;");
   step(2);
   const clickAt = (x, y) => {
     for (const fn of listeners.pointerdown || []) fn({ clientX: x, clientY: y });
     simNow += 30;
   };
-  clickAt(512, 338 + 17); step(2);      // STORY 条中心
+  const tr0 = JSON.parse(G_("(() => { const r = UI.titleItemRect(0); return JSON.stringify({ x: r.x + r.w / 2, y: r.y + r.h / 2 }); })()"));
+  clickAt(tr0.x, tr0.y); step(2);      // STORY 条中心(几何取自 UI.titleItemRect)
   if (G_("G.screen") !== "select" || G_("G.select.quest") !== true) throw new Error("mouse title click failed");
   const rc7 = G_("(() => { const r = _selGridRects()[6]; return JSON.stringify({ x: r.x + r.w / 2, y: r.y + r.h / 2 }); })()");
   const p7 = JSON.parse(rc7);

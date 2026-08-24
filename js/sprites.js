@@ -1275,6 +1275,9 @@ class Projectile {
     this.x = x; this.y = y; this.dir = dir;
     this.vx = def.speed * dir; this.vy = vy;
     this.kind = def.kind || 'shuriken';       // shuriken(四芒星) / kunai(苦无匕)
+    // M1.4「必杀范围不够大」: 远程必杀的弹体统一放大 —— 判定盒与画面同一个系数,
+    // 所以看起来变大就是真的变大(def.hitScale 由 roster.js 的范围强化段统一挂)
+    this.hs = def.hitScale || 1;
     this.trail = def.trail || 'rgba(125,91,255,0.75)';
     this.t = 0; this.dead = false;
   }
@@ -1293,18 +1296,20 @@ class Projectile {
   }
 
   box() {
+    const s = this.hs;
     if (this.kind === 'kunai' || this.kind === 'codeshard') {
-      return { x1: this.x - 12, y1: this.y - 10, x2: this.x + 12, y2: this.y + 10 };
+      return { x1: this.x - 12 * s, y1: this.y - 10 * s, x2: this.x + 12 * s, y2: this.y + 10 * s };
     }
     if (this.kind === 'sunarrow') {
-      return { x1: this.x - 20, y1: this.y - 16, x2: this.x + 20, y2: this.y + 16 };
+      return { x1: this.x - 20 * s, y1: this.y - 16 * s, x2: this.x + 20 * s, y2: this.y + 16 * s };
     }
-    return { x1: this.x - 16, y1: this.y - 14, x2: this.x + 16, y2: this.y + 14 };
+    return { x1: this.x - 16 * s, y1: this.y - 14 * s, x2: this.x + 16 * s, y2: this.y + 14 * s };
   }
 
   draw(ctx) {
     ctx.save();
     ctx.translate(Math.round(this.x), Math.round(this.y));
+    if (this.hs !== 1) ctx.scale(this.hs, this.hs); // M1.4: 弹体整体放大(与判定盒同系数)
     if (this.kind === 'kunai') {
       // 苦无: 沿飞行方向的匕首(菱形刃+柄+环), 不旋转 —— 直刺感。放大 1.5x 更清晰
       const a = Math.atan2(this.vy, this.vx * this.dir);

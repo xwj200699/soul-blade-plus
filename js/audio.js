@@ -117,6 +117,28 @@ const AudioSys = (() => {
     whooshH:   () => { noise(0.18, { freq: 1600, q: 0.9, type: 'bandpass', vol: 0.20, slide: -1100, atk: 0.005 }); noise(0.14, { freq: 600, q: 0.7, type: 'lowpass', vol: 0.16, slide: -300, atk: 0.005 }); tone(150, 0.12, { type: 'sine', vol: 0.10, slide: -70, atk: 0.004 }); },
     hitL:      () => HIT_VARIANTS[sfxVariant].hitL(),
     hitH:      () => HIT_VARIANTS[sfxVariant].hitH(),
+    /* ---- M1.4 受击层 ----------------------------------------------------
+       原本"打中"只有一个打击点音(hitL/hitH), 挨打的一方是没有声音的。这里补
+       一层受击音: 身体闷响 + 短促吐气, 由 fighter.receiveHit 在挨打侧按伤害
+       分档播放, 与打击点叠在同一帧 —— 打人和被打各有各的反馈。 */
+    hurtL:     () => { tone(178, 0.09, { type: 'sine', vol: 0.24, slide: -66, atk: 0.002 });
+                       noise(0.07, { freq: 900, q: 0.7, type: 'bandpass', vol: 0.18, slide: -480, atk: 0.002 }); },
+    hurtH:     () => { tone(128, 0.16, { type: 'sine', vol: 0.32, slide: -52, atk: 0.002 });
+                       noise(0.13, { freq: 640, q: 0.6, type: 'bandpass', vol: 0.26, slide: -360, atk: 0.002 });
+                       tone(318, 0.08, { type: 'triangle', vol: 0.15, slide: -150, atk: 0.002 }); },
+    hurtCrit:  () => { tone(104, 0.24, { type: 'sine', vol: 0.42, slide: -40, atk: 0.002 });
+                       noise(0.2, { freq: 520, q: 0.6, type: 'bandpass', vol: 0.32, slide: -300, atk: 0.002 });
+                       tone(240, 0.12, { type: 'triangle', vol: 0.2, slide: -130, delay: 0.02, atk: 0.002 });
+                       noise(0.09, { freq: 3800, type: 'highpass', vol: 0.16, slide: -1600, atk: 0.001 }); },
+    /* ---- M1.4 技能发动层 ------------------------------------------------
+       必杀/超必按下去的那一瞬间要"喊出来": 起手风鸣 + 上行泛音。原来只有
+       挥刀的 whoosh, 放技能和普攻在听觉上分不出来。 */
+    skillCast: () => { tone(176, 0.26, { type: 'sawtooth', vol: 0.24, slide: 520, atk: 0.006 });
+                       noise(0.2, { freq: 800, q: 1.1, type: 'bandpass', vol: 0.16, slide: 1500, atk: 0.01 });
+                       tone(1180, 0.1, { type: 'sine', vol: 0.14, delay: 0.16 }); },
+    superCast: () => { tone(58, 0.5, { type: 'sine', vol: 0.44, slide: 74, atk: 0.004, curve: 1.6 });
+                       noise(0.32, { freq: 1200, q: 0.8, type: 'bandpass', vol: 0.2, slide: 2000, atk: 0.02 });
+                       [523, 784, 1046].forEach((f, i) => tone(f, 0.14, { vol: 0.2, delay: 0.08 + i * 0.08 })); },
     block:     () => BLOCK_VARIANTS[blockVariant](),
     special:   () => { tone(210, 0.2, { type: 'sawtooth', vol: 0.26, slide: 700 }); noise(0.18, { freq: 900, vol: 0.16, slide: 1400 }); },
     projectile:() => tone(320, 0.14, { vol: 0.22, slide: -160 }),

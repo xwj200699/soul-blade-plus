@@ -5,7 +5,7 @@
    white crescents on attack frames feed the engine's smear pipeline). */
 'use strict';
 
-/* ---------- 綾 ayame: the hidden kunoichi, kit completed (REACH) ----------
+/* ---------- 欣韵 ayame: the hidden kunoichi, kit completed (REACH) ----------
    原作者已写好 light/light2/heavy/heavy2/special 且手感经过调校 —— 全部保留,
    只补齐让她能上场的缺口: air(空对空) 与 super(超必杀)。 */
 (() => {
@@ -35,10 +35,10 @@
   }
 })();
 
-/* ---------- 孙悟空 wukong (POWER · 金箍棒) ---------- */
+/* ---------- 毅 wukong (POWER · 金箍棒) ---------- */
 DATA.wukong = {
   id: 'wukong',
-  name: 'WUKONG', cn: '悟空', title: '斉天大聖', type: 'POWER',
+  name: 'YI', cn: '毅', title: '斉天大聖', type: 'POWER',
   theme: '#e8b22a', theme2: '#ff6b3d',
   dir: 'assets/img/wukong', fw: 192, native: 1, scale: 1.78, // M1.1: 屏显~148px 对齐原三人
   anchor: { x: 70, y: 150 },
@@ -78,12 +78,12 @@ DATA.wukong = {
       knock: 5, hitstun: 20, blockstun: 12, hitstop: 6, shake: 3,
       meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
     },
-    heavy: { // 力劈华山 (击倒)
+    heavy: { // 力劈华山 (K·K 第一段: 不再自带击倒 —— 击倒交给 heavy2, 见文件末 KIT 段)
       kind: 'heavy', name: '力劈華山', anim: 'attack2', total: 36, startup: 13, active: 6, impact: 4,
       seq: { w: [0, 1, 2, 3], i: 4, r: [5] },
       smear: { phases: [{ f: 4, t: 5 }], decay: 2, edge: '#ff6b3d', core: '#ffe9c8' },
       dmg: 14, chip: 2, guardDmg: 26, box: { x1: 10, x2: 140, y1: -162, y2: -34 },
-      knock: 8.5, hitstun: 27, blockstun: 16, hitstop: 9, shake: 6, kd: true,
+      knock: 8.5, hitstun: 27, blockstun: 16, hitstop: 9, shake: 6,
       meterHit: 14, sfx: 'whooshH', hitSfx: 'hitH',
     },
     air: {
@@ -113,10 +113,10 @@ DATA.wukong = {
   },
 };
 
-/* ---------- 后羿 houyi (RANGE · 射日弓) ---------- */
+/* ---------- 吉川 houyi (RANGE · 射日弓) ---------- */
 DATA.houyi = {
   id: 'houyi',
-  name: 'HOUYI', cn: '后羿', title: '射日の弓神', type: 'RANGE',
+  name: 'JICHUAN', cn: '吉川', title: '射日の弓神', type: 'RANGE',
   theme: '#4a6cb0', theme2: '#c6d0e0',
   dir: 'assets/img/houyi', fw: 192, native: 1, scale: 1.85,
   anchor: { x: 70, y: 150 },
@@ -139,7 +139,7 @@ DATA.houyi = {
     death:   { file: 'Death.png',   frames: 7, hold: 7,  loop: false },
   },
   moves: {
-    light: { // 速射箭: 后羿的普攻本体就是远程 —— 抬弓即射, 低伤高频
+    light: { // 速射箭: 吉川的普攻本体就是远程 —— 抬弓即射, 低伤高频
       kind: 'light', name: '速射箭', anim: 'attack1', total: 20, startup: 5, active: 1, impact: 3,
       seq: { w: [0, 1, 2], i: 3, r: [4, 5] },
       projectile: { kind: 'arrow', trail: 'rgba(198,208,224,0.72)', spread: [0], speed: 12,
@@ -204,10 +204,10 @@ DATA.houyi = {
   },
 };
 
-/* ---------- 安琪拉 angela (MAGE · 火焰) ---------- */
+/* ---------- 景英 angela (MAGE · 火焰) ---------- */
 DATA.angela = {
   id: 'angela',
-  name: 'ANGELA', cn: '安琪拉', title: '烈焰の紅蓮', type: 'MAGE',
+  name: 'JINGYING', cn: '景英', title: '烈焰の紅蓮', type: 'MAGE',
   theme: '#864aac', theme2: '#ff8428',
   dir: 'assets/img/angela', fw: 192, native: 1, scale: 1.9,
   anchor: { x: 70, y: 150 },
@@ -238,12 +238,12 @@ DATA.angela = {
       knock: 4.5, hitstun: 18, blockstun: 11, hitstop: 5, shake: 2,
       meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
     },
-    heavy: { // 烈焰重击 (击倒)
+    heavy: { // 烈焰重击 (K·K 第一段, 击倒交给 heavy2)
       kind: 'heavy', name: '烈焰重撃', anim: 'attack1', total: 33, startup: 12, active: 5, impact: 3,
       seq: { w: [0, 1, 2], i: 3, r: [4] },
       smear: { phases: [{ f: 3, t: 5 }], decay: 2, edge: '#ff6b3d', core: '#ffd8a8' },
       dmg: 12, chip: 2, guardDmg: 20, box: { x1: 10, x2: 122, y1: -154, y2: -40 },
-      knock: 8, hitstun: 25, blockstun: 15, hitstop: 8, shake: 5, kd: true,
+      knock: 8, hitstun: 25, blockstun: 15, hitstop: 8, shake: 5,
       meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
     },
     air: {
@@ -271,10 +271,10 @@ DATA.angela = {
   },
 };
 
-/* ---------- 貂蝉 diaochan (DANCE · 双扇舞姬) —— M1.3 ---------- */
+/* ---------- 文宣 diaochan (DANCE · 双扇舞姬) —— M1.3 ---------- */
 DATA.diaochan = {
   id: 'diaochan',
-  name: 'DIAOCHAN', cn: '貂蝉', title: '月下の舞姫', type: 'DANCE',
+  name: 'WENXUAN', cn: '文宣', title: '月下の舞姫', type: 'DANCE',
   theme: '#e2547a', theme2: '#ff9db8',
   dir: 'assets/img/diaochan', fw: 192, native: 1, scale: 1.85,
   anchor: { x: 70, y: 150 },
@@ -305,12 +305,12 @@ DATA.diaochan = {
       knock: 4.5, hitstun: 18, blockstun: 11, hitstop: 5, shake: 2,
       meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
     },
-    heavy: { // 舞袖回旋 (击倒)
+    heavy: { // 舞袖回旋 (K·K 第一段, 击倒交给 heavy2)
       kind: 'heavy', name: '舞袖回旋', anim: 'attack2', total: 31, startup: 11, active: 5, impact: 4,
       seq: { w: [0, 1, 2, 3], i: 4, r: [5] },
       smear: { phases: [{ f: 4, t: 5 }], decay: 2, edge: '#e2547a', core: '#ffe0e8' },
       dmg: 11, chip: 2, guardDmg: 20, box: { x1: 10, x2: 128, y1: -152, y2: -40 },
-      knock: 8, hitstun: 25, blockstun: 15, hitstop: 8, shake: 5, kd: true,
+      knock: 8, hitstun: 25, blockstun: 15, hitstop: 8, shake: 5,
       meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
     },
     air: {
@@ -338,12 +338,12 @@ DATA.diaochan = {
   },
 };
 
-/* ---------- 电脑博士 doctor (TECH · 笔电与代码) ----------
+/* ---------- 泽轩 doctor (TECH · 笔电与代码) ----------
    校园电力风双角色之一, 精灵图由 _build/bake_roster3.py 烘焙。
    身份 = zoner: 站远处丢代码包, 近身只有一套横扫, 拳头软但压制线长。 */
 DATA.doctor = {
   id: 'doctor',
-  name: 'DOCTOR', cn: '博士', title: '算法教授', type: 'TECH',
+  name: 'ZEXUAN', cn: '泽轩', title: '算法教授', type: 'TECH',
   theme: '#50a0dc', theme2: '#7fd3ff',
   dir: 'assets/img/doctor', fw: 192, native: 1, scale: 1.82,
   anchor: { x: 70, y: 150 },
@@ -423,11 +423,11 @@ DATA.doctor = {
   },
 };
 
-/* ---------- 肉盾 tank (GUARD · 防爆盾与绝缘扳手) ----------
+/* ---------- 钰胜 tank (GUARD · 防爆盾与绝缘扳手) ----------
    身份 = 抗打压制: 移动慢、reach 短, 但吃伤害打八折(dmgTaken), 重击与突进都带击倒。 */
 DATA.tank = {
   id: 'tank',
-  name: 'IRONWALL', cn: '肉盾', title: '绝缘壁垒', type: 'GUARD',
+  name: 'YUSHENG', cn: '钰胜', title: '绝缘壁垒', type: 'GUARD',
   theme: '#e8622c', theme2: '#f5cc36',
   dir: 'assets/img/tank', fw: 192, native: 1, scale: 1.86,
   anchor: { x: 70, y: 150 },
@@ -435,7 +435,7 @@ DATA.tank = {
   walk: 2.6, jumpVy: -14.6, dashVx: 6.0, backdashVx: 5.8,
   dash: { from: 4, to: 18, vx: 5.8 },
   stats: { pow: 4, spd: 2, rng: 2 },
-  dmgTaken: 0.8,   // 肉盾本体特性: 受伤 -20%(fighter.js hurt 读取)
+  dmgTaken: 0.8,   // 钰胜本体特性: 受伤 -20%(fighter.js hurt 读取)
   quoteWin: '安全第一。你违规操作了。', quoteLose: '这盾……得报修了。',
   portrait: { x: 51, y: 66, w: 38, h: 38 }, // 192px 骨架的头部方框(file:// 抠图失败时的回退框)
   anims: {
@@ -459,12 +459,12 @@ DATA.tank = {
       knock: 5, hitstun: 19, blockstun: 12, hitstop: 6, shake: 3,
       meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
     },
-    heavy: { // 铁壁重砸 (击倒)
+    heavy: { // 铁壁重砸 (K·K 第一段, 击倒交给 heavy2)
       kind: 'heavy', name: '铁壁重砸', anim: 'attack2', total: 36, startup: 14, active: 6, impact: 4,
       seq: { w: [0, 1, 2, 3], i: 4, r: [5] },
       smear: { phases: [{ f: 4, t: 5 }], decay: 2, edge: '#e8622c', core: '#ffe0c8' },
       dmg: 13, chip: 3, guardDmg: 24, box: { x1: 6, x2: 122, y1: -150, y2: 4 },
-      knock: 8.5, hitstun: 26, blockstun: 17, hitstop: 10, shake: 6, kd: true,
+      knock: 8.5, hitstun: 26, blockstun: 17, hitstop: 10, shake: 6,
       meterHit: 14, sfx: 'whooshH', hitSfx: 'hitH',
     },
     air: {
@@ -560,10 +560,471 @@ for (const [cid, tbl] of Object.entries(FLAIR)) {
   for (const [k, f] of Object.entries(tbl)) if (mv[k]) mv[k].flair = f;
 }
 
-/* ---------- 全员数值上调 ----------
-   集中做系数, 而不是散改每个招式的字面量: data.js 里那套手感调校仍是唯一真值,
-   这里只统一抬一档伤害/破防/气收益, 想回退或再调只改 K。
-   与 fighter.js 的 BASE_HP(150) 配套 —— 血和伤一起涨, 回合长度大体不变但数字更重。 */
+/* ================================================================================
+   KIT 补全 (M1.4 · 英雄技能优化)
+   原本只有剣二/隼人(mack/kenji)拥有完整招式表, 扩充花名册的七位只有
+   J / K / 空J / U / I —— 没有 J·J 连打、没有 K·K 终结、没有蹲攻、没有空中重击,
+   打起来"只有两个按钮"。这里按 data.js 的同一套语法把缺口补齐:
+
+     light2   J·J 第二段(altL 自动交替)
+     heavy2   K·K 终结段(仅在"K 真命中并连锁"时出现, 击倒由 main.js 的连锁规则给)
+     clight   蹲J 低位快攻   clight2 蹲J·J 第二段(altCL 交替)
+     cheavy   蹲K 挑空技(noChain + hop, 浮空后可接 I 超必)
+     dive     空中 K 俯冲下砸(落地砸判定)
+     dashslash 冲刺J 专属突进斩(速度/长枪型)
+     airspecial 空中 U(远程型)
+
+   实现约定(与原作者的手感调校保持一致):
+   · 蹲攻身体全程用烘焙好的 crouch 帧(seq 里的 {a:'crouch', f:n} 引用), 刀光走
+     程序化低位弧线 fx —— 蹲帧上没有画师烘焙的白月牙, 硬套 smear 会失效。
+   · 挑空技/俯冲斩在判定窗切回攻击表的月牙帧(i: <smearFrame>), 所以能吃到
+     帧同步重染, 与二侍同一条视觉管线。
+   · 数值一律写"上调前"的量级(与 data.js 字面量同尺度) —— 文件末尾的
+     「全员数值上调」系数会统一乘上去, 想整体调强弱只动那里的 K。
+   ================================================================================ */
+/* 低位平扫的程序化刀光(蹲攻用): reach 决定弧半径, back=true 反向回扫 */
+const _lowFx = (reach, c1, c2, y = -50, back = false) => ({
+  x: Math.round(reach * 0.52), y,
+  r: Math.round(reach * 0.8), ry: 0.4,
+  a0: back ? 0.1 : 2.78, a1: back ? 2.85 : 0.02,
+  w: 11, life: 9, color: c1, color2: c2,
+});
+/* 蹲姿帧路径: 身体全程蹲着(入蹲→出招→回蹲), f 为 crouch 表里的出招帧 */
+const _cSeq = (f) => ({ w: [{ a: 'crouch', f: 0 }], i: { a: 'crouch', f }, r: [{ a: 'crouch', f: 0 }] });
+/* 挑空技帧路径: 从蹲姿弹起, 判定窗切回攻击表的月牙帧 imp */
+const _upSeq = (imp, rec) => ({ w: [{ a: 'crouch', f: 0 }], i: imp, r: [rec] });
+
+/* ---------- 毅 wukong: 金箍棒全套 (POWER · 长棍压制) ---------- */
+Object.assign(DATA.wukong.moves, {
+  heavy2: { // 翻天棍(K·K 终结): 蹬地前踏一记横扫, 把人抽飞
+    kind: 'heavy', name: '翻天棍', anim: 'attack1', total: 34, startup: 10, active: 6, impact: 4,
+    seq: { w: [2, 3], i: 4, r: [5] }, dash: { from: 2, to: 11, vx: 5.6 },
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, echo: { t: 4, dx: 8 }, edge: '#ff6b3d', core: '#ffe9c8' },
+    dmg: 13, chip: 2, guardDmg: 26, box: { x1: 8, x2: 148, y1: -170, y2: -28 },
+    knock: 9, hitstun: 28, blockstun: 16, hitstop: 12, shake: 6, launch: -9,
+    meterHit: 14, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  clight: { // 扫堂棍: 贴地横扫, 起手快
+    kind: 'light', anim: 'attack1', total: 22, startup: 6, active: 5, impact: 4,
+    seq: _cSeq(2), fx: _lowFx(132, '#fff8e2', '#ffd24a'),
+    dmg: 5, chip: 0, guardDmg: 10, box: { x1: 8, x2: 132, y1: -66, y2: -4 },
+    knock: 3.5, hitstun: 17, blockstun: 10, hitstop: 5, shake: 2,
+    meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  clight2: { // 回扫棍(蹲J·J 第二段): 同一条棍路反手再来一次
+    kind: 'light', anim: 'attack1', total: 20, startup: 5, active: 4, impact: 4,
+    seq: _cSeq(3), cullSmear: true, fx: _lowFx(132, '#ffe9c8', '#ff9d3d', -46, true),
+    dmg: 4, chip: 0, guardDmg: 10, box: { x1: 8, x2: 132, y1: -66, y2: -4 },
+    knock: 4, hitstun: 17, blockstun: 10, hitstop: 5, shake: 2,
+    meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  cheavy: { // 齐天棍·昇: 蹲K 挑空(独立技), 浮空后可接超必
+    kind: 'heavy', name: '齊天棍・昇', noChain: true, anim: 'attack1', total: 34,
+    startup: 10, active: 6, impact: 4, seq: _upSeq(4, 5), hop: -8,
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, attach: true, edge: '#ffd24a', core: '#fff8e2' },
+    dmg: 11, chip: 2, guardDmg: 22, box: { x1: 4, x2: 138, y1: -182, y2: -14 },
+    knock: 1.5, hitstun: 26, blockstun: 14, hitstop: 12, shake: 5, kd: true, launch: -15,
+    meterHit: 12, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dive: { // 碎地棍: 空中 K 俯冲, 落地一记砸地
+    kind: 'heavy', name: '碎地棍', anim: 'attack2', air: true, dive: true, impact: 4,
+    startup: 8, diveSpeed: 15, diveDrift: 4.5, recovery: 26, slamActive: 8,
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, echo: { t: 3, dx: 6 }, edge: '#ff6b3d', core: '#ffe9c8' },
+    dmg: 11, chip: 3, guardDmg: 30, box: { x1: 10, x2: 152, y1: -104, y2: 10 },
+    knock: 7, hitstun: 28, blockstun: 16, hitstop: 13, shake: 7, kd: true,
+    meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+});
+
+/* ---------- 吉川 houyi: 弓神的近身自保 (RANGE) ----------
+   他的 J/K/空J 本体全是箭(box:null), 飞行道具不会置 move.contact, 所以连锁
+   永远不成立 —— light2/heavy2 挂上去也是死代码。真正缺的是"被贴脸怎么办":
+   补一整套蹲攻 + 挑空 + 空中下砸, 全部是有判定框的近战, 让 zoner 有拆招手段。 */
+Object.assign(DATA.houyi.moves, {
+  clight: { // 弓身横打: 用弓臂贴地一扫
+    kind: 'light', name: '弓臂横打', anim: 'attack2', total: 21, startup: 5, active: 5, impact: 3,
+    seq: _cSeq(2), fx: _lowFx(114, '#e8f0ff', '#7d9fd0'),
+    dmg: 5, chip: 0, guardDmg: 10, box: { x1: 8, x2: 114, y1: -64, y2: -4 },
+    knock: 4, hitstun: 17, blockstun: 10, hitstop: 5, shake: 2,
+    meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  clight2: { // 弓尾回扫
+    kind: 'light', anim: 'attack2', total: 19, startup: 4, active: 4, impact: 3,
+    seq: _cSeq(3), cullSmear: true, fx: _lowFx(114, '#c6d0e0', '#4a6cb0', -44, true),
+    dmg: 4, chip: 0, guardDmg: 10, box: { x1: 8, x2: 114, y1: -64, y2: -4 },
+    knock: 4.5, hitstun: 17, blockstun: 10, hitstop: 5, shake: 2,
+    meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  cheavy: { // 射日撩: 弓身上撩挑空(独立技), 专治跳入
+    kind: 'heavy', name: '射日撩', noChain: true, anim: 'attack2', total: 32,
+    startup: 9, active: 6, impact: 3, seq: _upSeq(3, 4), hop: -7,
+    smear: { phases: [{ f: 3, t: 5 }], decay: 2, rim: 4, attach: true, edge: '#ffb648', core: '#fff2d8' },
+    dmg: 10, chip: 2, guardDmg: 22, box: { x1: 4, x2: 122, y1: -178, y2: -14 },
+    knock: 1.5, hitstun: 26, blockstun: 14, hitstop: 11, shake: 5, kd: true, launch: -15,
+    meterHit: 12, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dive: { // 落日踏: 空中 K 俯冲踏击
+    kind: 'heavy', name: '落日踏', anim: 'attack2', air: true, dive: true, impact: 3,
+    startup: 7, diveSpeed: 15, diveDrift: 5, recovery: 24, slamActive: 8,
+    smear: { phases: [{ f: 3, t: 5 }], decay: 2, echo: { t: 3, dy: 7 }, edge: '#ffb648', core: '#fff2d8' },
+    dmg: 10, chip: 3, guardDmg: 28, box: { x1: 6, x2: 132, y1: -98, y2: 10 },
+    knock: 6.5, hitstun: 26, blockstun: 15, hitstop: 12, shake: 6, kd: true,
+    meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+});
+
+/* ---------- 景英 angela: 烈焰全套 (MAGE · 中距压制) ---------- */
+Object.assign(DATA.angela.moves, {
+  light2: { // 炎尖二连(J·J 第二段): 同一记杖尖, 抬高半格再补一下
+    kind: 'light', anim: 'attack1', total: 20, startup: 5, active: 5, impact: 3,
+    seq: { w: [2], i: 3, r: [4] },
+    smear: { phases: [{ f: 3, t: 4 }], decay: 2, edge: '#ffb648', core: '#fff2d8' },
+    dmg: 7, chip: 0, guardDmg: 9, box: { x1: 10, x2: 120, y1: -160, y2: -50 },
+    knock: 5, hitstun: 19, blockstun: 11, hitstop: 5, shake: 2,
+    meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  heavy2: { // 炎爆撃(K·K 终结): 上前半步, 把火焰整团轰出去
+    kind: 'heavy', name: '炎爆撃', anim: 'attack1', total: 32, startup: 10, active: 6, impact: 3,
+    seq: { w: [1, 2], i: 3, r: [4] }, dash: { from: 2, to: 10, vx: 5.2 },
+    smear: { phases: [{ f: 3, t: 5 }], decay: 2, rim: 4, echo: { t: 4, dx: 7 }, edge: '#ff4a2e', core: '#ffe0a8' },
+    dmg: 12, chip: 2, guardDmg: 22, box: { x1: 8, x2: 132, y1: -164, y2: -30 },
+    knock: 9, hitstun: 27, blockstun: 15, hitstop: 12, shake: 6, launch: -9,
+    meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  clight: { // 焰扫: 贴地一道火线
+    kind: 'light', anim: 'attack1', total: 21, startup: 5, active: 5, impact: 3,
+    seq: _cSeq(2), fx: _lowFx(112, '#ffe9c8', '#ff8428'),
+    dmg: 5, chip: 0, guardDmg: 9, box: { x1: 8, x2: 112, y1: -62, y2: -4 },
+    knock: 3.5, hitstun: 16, blockstun: 9, hitstop: 4, shake: 2,
+    meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  clight2: { // 焰扫·返
+    kind: 'light', anim: 'attack1', total: 19, startup: 4, active: 4, impact: 3,
+    seq: _cSeq(3), cullSmear: true, fx: _lowFx(112, '#ffd8a8', '#c94aff', -44, true),
+    dmg: 4, chip: 0, guardDmg: 9, box: { x1: 8, x2: 112, y1: -62, y2: -4 },
+    knock: 4, hitstun: 16, blockstun: 9, hitstop: 4, shake: 2,
+    meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  cheavy: { // 昇炎: 一柱火焰把人挑上天(独立技)
+    kind: 'heavy', name: '昇炎', noChain: true, anim: 'attack1', total: 32,
+    startup: 9, active: 6, impact: 3, seq: _upSeq(3, 4), hop: -7,
+    smear: { phases: [{ f: 3, t: 5 }], decay: 2, rim: 4, attach: true, edge: '#ff6b3d', core: '#ffe9c8' },
+    dmg: 10, chip: 2, guardDmg: 22, box: { x1: 4, x2: 118, y1: -176, y2: -14 },
+    knock: 1.5, hitstun: 25, blockstun: 13, hitstop: 11, shake: 5, kd: true, launch: -15,
+    meterHit: 11, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dive: { // 流星撞: 裹着火焰砸下来
+    kind: 'heavy', name: '流星撞', anim: 'attack1', air: true, dive: true, impact: 3,
+    startup: 7, diveSpeed: 14.5, diveDrift: 4.5, recovery: 24, slamActive: 8,
+    smear: { phases: [{ f: 3, t: 5 }], decay: 2, echo: { t: 3, dy: 7 }, edge: '#ff6b3d', core: '#ffd8a8' },
+    dmg: 10, chip: 3, guardDmg: 26, box: { x1: 6, x2: 122, y1: -96, y2: 10 },
+    knock: 6.5, hitstun: 26, blockstun: 15, hitstop: 12, shake: 6, kd: true,
+    meterHit: 12, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  airspecial: { // 空中火球: 斜下砸的小火球, 制空压制
+    kind: 'special', name: '空中火球', anim: 'attack2', air: true, total: 30,
+    startup: 10, active: 1, impact: 4, cooldown: 82,
+    projectile: { kind: 'fireball', trail: 'rgba(255,132,40,0.75)', spread: [4], speed: 7.2,
+                  dmg: 8, chip: 2, guardDmg: 14, y: -60, launch: -10,
+                  hitstun: 22, blockstun: 12, knock: 4, hitstop: 6, meterHit: 11 },
+    dmg: 0, meterHit: 4, sfx: 'projectile', hitSfx: 'hitH',
+  },
+});
+
+/* ---------- 文宣 diaochan: 双扇全套 (DANCE · 速度型) ---------- */
+Object.assign(DATA.diaochan.moves, {
+  light2: { // 双扇连斩(J·J 第二段): 另一把扇低半格补一刀
+    kind: 'light', anim: 'attack2', total: 19, startup: 4, active: 5, impact: 4,
+    seq: { w: [3], i: 4, r: [5] },
+    smear: { phases: [{ f: 4, t: 4 }], decay: 2, edge: '#e2547a', core: '#ffe0e8' },
+    dmg: 7, chip: 0, guardDmg: 9, box: { x1: 10, x2: 124, y1: -140, y2: -34 },
+    knock: 5, hitstun: 18, blockstun: 11, hitstop: 5, shake: 2,
+    meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  heavy2: { // 旋舞落扇(K·K 终结): 借旋身前踏, 一扇把人抽出去
+    kind: 'heavy', name: '旋舞落扇', anim: 'attack1', total: 30, startup: 9, active: 6, impact: 4,
+    seq: { w: [2, 3], i: 4, r: [5] }, dash: { from: 2, to: 10, vx: 6.2 },
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, echo: { t: 4, dx: 8 }, edge: '#ff9db8', core: '#fff0f4' },
+    dmg: 11, chip: 2, guardDmg: 22, box: { x1: 8, x2: 136, y1: -158, y2: -28 },
+    knock: 9, hitstun: 27, blockstun: 15, hitstop: 11, shake: 5, launch: -10,
+    meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  clight: { // 裙下扇: 贴地一记扇刃
+    kind: 'light', anim: 'attack1', total: 20, startup: 5, active: 5, impact: 4,
+    seq: _cSeq(2), fx: _lowFx(118, '#fff0f4', '#e2547a'),
+    dmg: 5, chip: 0, guardDmg: 9, box: { x1: 8, x2: 118, y1: -62, y2: -4 },
+    knock: 3.5, hitstun: 16, blockstun: 9, hitstop: 4, shake: 2,
+    meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  clight2: { // 裙下扇·返
+    kind: 'light', anim: 'attack1', total: 18, startup: 4, active: 4, impact: 4,
+    seq: _cSeq(3), cullSmear: true, fx: _lowFx(118, '#ffe0e8', '#ff9db8', -44, true),
+    dmg: 4, chip: 0, guardDmg: 9, box: { x1: 8, x2: 118, y1: -62, y2: -4 },
+    knock: 4, hitstun: 16, blockstun: 9, hitstop: 4, shake: 2,
+    meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  cheavy: { // 舞踏昇: 旋身腾起的挑空扇(独立技)
+    kind: 'heavy', name: '舞踏昇', noChain: true, anim: 'attack1', total: 30,
+    startup: 8, active: 6, impact: 4, seq: _upSeq(4, 5), hop: -7.5,
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, attach: true, edge: '#ff9db8', core: '#fff0f4' },
+    dmg: 10, chip: 2, guardDmg: 22, box: { x1: 4, x2: 124, y1: -178, y2: -14 },
+    knock: 1.5, hitstun: 25, blockstun: 13, hitstop: 11, shake: 5, kd: true, launch: -16,
+    meterHit: 11, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dive: { // 花墜: 空中 K 旋身坠地
+    kind: 'heavy', name: '花墜', anim: 'attack2', air: true, dive: true, impact: 4,
+    startup: 7, diveSpeed: 15, diveDrift: 5, recovery: 22, slamActive: 8,
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, echo: { t: 3, dy: 7 }, edge: '#e2547a', core: '#ffe0e8' },
+    dmg: 10, chip: 2, guardDmg: 26, box: { x1: 6, x2: 126, y1: -96, y2: 10 },
+    knock: 6.5, hitstun: 26, blockstun: 15, hitstop: 12, shake: 6, kd: true,
+    meterHit: 12, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dashslash: { // 疾舞斬(冲刺J): 借冲刺的一记贯穿扇, 速度型招牌
+    kind: 'light', name: '疾舞斬', anim: 'attack1', total: 20, startup: 4, active: 6, impact: 4,
+    seq: { w: [1], i: 4, r: [5] }, dash: { from: 0, to: 8, vx: 11.5 },
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, echo: { t: 3, dx: 10 }, edge: '#ff9db8', core: '#fff0f4' },
+    dmg: 8, chip: 1, guardDmg: 13, box: { x1: 8, x2: 124, y1: -142, y2: -34 },
+    knock: 7, hitstun: 22, blockstun: 10, hitstop: 7, shake: 3,
+    meterHit: 10, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+});
+
+/* ---------- 泽轩 doctor: 算法教授的近身自保 (TECH · zoner) ----------
+   同 houyi: J/K/空J 全是投掷物, 连锁不成立 —— 补的是"被贴脸的出路"。 */
+Object.assign(DATA.doctor.moves, {
+  clight: { // 低位扫腿: 一脚把贴脸的人踢开
+    kind: 'light', name: '扫腿', anim: 'attack1', total: 20, startup: 5, active: 5, impact: 4,
+    seq: _cSeq(2), fx: _lowFx(112, '#7fd3ff', '#50a0dc'),
+    dmg: 5, chip: 0, guardDmg: 10, box: { x1: 8, x2: 112, y1: -62, y2: -4 },
+    knock: 4.5, hitstun: 17, blockstun: 10, hitstop: 5, shake: 2,
+    meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  clight2: { // 扫腿·返
+    kind: 'light', anim: 'attack1', total: 18, startup: 4, active: 4, impact: 4,
+    seq: _cSeq(3), cullSmear: true, fx: _lowFx(112, '#d8f2ff', '#2a66a8', -44, true),
+    dmg: 4, chip: 0, guardDmg: 10, box: { x1: 8, x2: 112, y1: -62, y2: -4 },
+    knock: 5, hitstun: 17, blockstun: 10, hitstop: 5, shake: 2,
+    meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  cheavy: { // 抬机上砸: 笔电当锤往上撩, 挑空(独立技)
+    kind: 'heavy', name: '抬机上砸', noChain: true, anim: 'attack1', total: 32,
+    startup: 9, active: 6, impact: 4, seq: _upSeq(4, 5), hop: -7,
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, attach: true, edge: '#7fd3ff', core: '#e8f8ff' },
+    dmg: 10, chip: 2, guardDmg: 22, box: { x1: 4, x2: 118, y1: -178, y2: -14 },
+    knock: 1.5, hitstun: 25, blockstun: 13, hitstop: 11, shake: 5, kd: true, launch: -15,
+    meterHit: 12, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dive: { // 俯冲部署: 抱着笔电砸下来
+    kind: 'heavy', name: '俯冲部署', anim: 'attack2', air: true, dive: true, impact: 4,
+    startup: 7, diveSpeed: 15, diveDrift: 5, recovery: 24, slamActive: 8,
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, echo: { t: 3, dy: 7 }, edge: '#50a0dc', core: '#d8f2ff' },
+    dmg: 10, chip: 3, guardDmg: 28, box: { x1: 6, x2: 126, y1: -98, y2: 10 },
+    knock: 6.5, hitstun: 26, blockstun: 15, hitstop: 12, shake: 6, kd: true,
+    meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  airspecial: { // 空中热更新: 斜下抛的数据包
+    kind: 'special', name: '空中热更新', anim: 'attack2', air: true, total: 28,
+    startup: 10, active: 1, impact: 4, cooldown: 76,
+    projectile: { kind: 'datapack', trail: 'rgba(127,211,255,0.7)', spread: [4], speed: 8.6,
+                  dmg: 8, chip: 2, guardDmg: 13, y: -60, launch: -10,
+                  hitstun: 21, blockstun: 11, knock: 3, hitstop: 5, meterHit: 10 },
+    dmg: 0, meterHit: 4, sfx: 'projectile', hitSfx: 'hitL',
+    flair: { x: 38, y: -60, ring: 10, spark: 7, color: '#7fd3ff', color2: '#2a66a8' },
+  },
+});
+
+/* ---------- 钰胜 tank: 盾与扳手全套 (GUARD · 抗打压制) ---------- */
+Object.assign(DATA.tank.moves, {
+  light2: { // 扳手回打(J·J 第二段)
+    kind: 'light', anim: 'attack2', total: 22, startup: 5, active: 5, impact: 4,
+    seq: { w: [3], i: 4, r: [5] },
+    smear: { phases: [{ f: 4, t: 4 }], decay: 2, edge: '#e8622c', core: '#ffe0c8' },
+    dmg: 9, chip: 1, guardDmg: 14, box: { x1: 10, x2: 114, y1: -134, y2: -30 },
+    knock: 5.5, hitstun: 20, blockstun: 12, hitstop: 6, shake: 3,
+    meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  heavy2: { // 盾锤终结(K·K 终结): 整块盾压上去
+    kind: 'heavy', name: '盾锤终结', anim: 'attack1', total: 34, startup: 11, active: 6, impact: 4,
+    seq: { w: [2, 3], i: 4, r: [5] }, dash: { from: 2, to: 12, vx: 5.0 },
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, echo: { t: 4, dx: 7 }, edge: '#f5cc36', core: '#fff4d8' },
+    dmg: 13, chip: 3, guardDmg: 28, box: { x1: 6, x2: 128, y1: -156, y2: -20 },
+    knock: 9.5, hitstun: 28, blockstun: 17, hitstop: 13, shake: 7, launch: -8,
+    meterHit: 14, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  clight: { // 低位盾撞: 蹲着把盾往前一顶
+    kind: 'light', anim: 'attack1', total: 22, startup: 6, active: 5, impact: 4,
+    seq: _cSeq(2), fx: _lowFx(106, '#fff4d8', '#f5cc36'),
+    dmg: 6, chip: 1, guardDmg: 12, box: { x1: 8, x2: 106, y1: -66, y2: -2 },
+    knock: 4, hitstun: 17, blockstun: 11, hitstop: 5, shake: 2,
+    meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  clight2: { // 盾缘刮击
+    kind: 'light', anim: 'attack1', total: 20, startup: 5, active: 4, impact: 4,
+    seq: _cSeq(3), cullSmear: true, fx: _lowFx(106, '#ffe0c8', '#e8622c', -46, true),
+    dmg: 5, chip: 1, guardDmg: 12, box: { x1: 8, x2: 106, y1: -66, y2: -2 },
+    knock: 4.5, hitstun: 17, blockstun: 11, hitstop: 5, shake: 2,
+    meterHit: 9, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  cheavy: { // 顶盾昇: 盾面上顶挑空(独立技), 对空最硬
+    kind: 'heavy', name: '顶盾昇', noChain: true, anim: 'attack1', total: 34,
+    startup: 10, active: 7, impact: 4, seq: _upSeq(4, 5), hop: -7,
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, attach: true, edge: '#f5cc36', core: '#fff4d8' },
+    dmg: 11, chip: 2, guardDmg: 24, box: { x1: 2, x2: 114, y1: -180, y2: -12 },
+    knock: 1.5, hitstun: 26, blockstun: 15, hitstop: 12, shake: 6, kd: true, launch: -14.5,
+    meterHit: 12, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dive: { // 重压坠: 带着盾整个人砸下来, 全场最重的下砸
+    kind: 'heavy', name: '重压坠', anim: 'attack2', air: true, dive: true, impact: 4,
+    startup: 8, diveSpeed: 16, diveDrift: 4, recovery: 28, slamActive: 9,
+    smear: { phases: [{ f: 4, t: 5 }], decay: 2, rim: 4, echo: { t: 3, dx: 6 }, edge: '#e8622c', core: '#ffe0c8' },
+    dmg: 12, chip: 3, guardDmg: 34, box: { x1: 4, x2: 124, y1: -100, y2: 12 },
+    knock: 7.5, hitstun: 28, blockstun: 17, hitstop: 14, shake: 9, kd: true,
+    meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+});
+
+/* ---------- 欣韵 ayame: 长枪补全 (REACH) ----------
+   注意: Huntress 素材没有蹲帧(crouch 占位 = Idle), 所以她的蹲攻不引用 crouch 帧,
+   而是直接用 attack3 的长突刺身体 + 压低的判定框/枪光 —— 读作"沉身低突", 不会
+   出现"站着却是蹲判定"的怪帧。 */
+Object.assign(DATA.ayame.moves, {
+  clight: { // 低突き: 沉身贴地长刺, 全场最长的低位判定
+    kind: 'light', name: '低突き', anim: 'attack3', total: 21, startup: 5, active: 5, impact: 4,
+    seq: { w: [0, 1], i: 4, r: [5, 6] },
+    fx: { thrust: true, x: 58, y: -46, color: '#eef4ff', color2: '#8fb0ff' },
+    dmg: 4, chip: 0, guardDmg: 9, box: { x1: 18, x2: 198, y1: -66, y2: -6 },
+    knock: 3.5, hitstun: 16, blockstun: 9, hitstop: 4, shake: 2,
+    meterHit: 7, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  clight2: { // 返し突き: 收枪即再刺, 略高一点
+    kind: 'light', name: '返し突き', anim: 'attack3', total: 19, startup: 4, active: 4, impact: 4,
+    seq: { w: [2], i: 4, r: [5, 6] },
+    fx: { thrust: true, x: 58, y: -58, color: '#dfe8ff', color2: '#5b7dff' },
+    dmg: 3, chip: 0, guardDmg: 9, box: { x1: 18, x2: 198, y1: -78, y2: -16 },
+    knock: 4, hitstun: 16, blockstun: 9, hitstop: 4, shake: 2,
+    meterHit: 7, sfx: 'whooshL', hitSfx: 'hitL',
+  },
+  cheavy: { // 月輪撩: 枪尖上撩挑空(独立技)
+    kind: 'heavy', name: '月輪撩', noChain: true, anim: 'attack1', total: 31,
+    startup: 9, active: 6, impact: 3, seq: { w: [0], i: 3, r: [4] }, hop: -7.5,
+    smear: { phases: [{ f: 3, t: 5 }], decay: 2, rim: 4, attach: true, edge: '#5b7dff', core: '#e8f0ff' },
+    dmg: 10, chip: 2, guardDmg: 22, box: { x1: 4, x2: 168, y1: -186, y2: -14 },
+    knock: 1.5, hitstun: 25, blockstun: 13, hitstop: 11, shake: 5, kd: true, launch: -16,
+    meterHit: 11, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dive: { // 墜月突: 空中 K 斜下俯冲刺
+    kind: 'heavy', name: '墜月突', anim: 'attack2', air: true, dive: true, impact: 3,
+    startup: 7, diveSpeed: 15.5, diveDrift: 5, recovery: 24, slamActive: 8,
+    smear: { phases: [{ f: 3, t: 5 }], decay: 2, echo: { t: 3, dy: 7 }, edge: '#4a63d8', core: '#dfe8ff' },
+    dmg: 10, chip: 3, guardDmg: 28, box: { x1: 0, x2: 168, y1: -98, y2: 10 },
+    knock: 6.5, hitstun: 26, blockstun: 15, hitstop: 12, shake: 6, kd: true,
+    meterHit: 12, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+  dashslash: { // 疾走突(冲刺J): 借冲刺把枪整条送出去
+    kind: 'light', name: '疾走突', anim: 'attack3', total: 21, startup: 4, active: 6, impact: 4,
+    seq: { w: [0], i: 4, r: [5, 6] }, dash: { from: 0, to: 8, vx: 10.5 },
+    fx: { thrust: true, x: 66, y: -76, color: '#ffffff', color2: '#8fb0ff' },
+    dmg: 8, chip: 1, guardDmg: 14, box: { x1: 16, x2: 208, y1: -108, y2: -46 },
+    knock: 7, hitstun: 22, blockstun: 10, hitstop: 7, shake: 3,
+    meterHit: 10, sfx: 'whooshH', hitSfx: 'hitH',
+  },
+});
+
+/* 新招的演出层: 挑空/俯冲/冲刺斩各挂一份轻量 flair(与既有 FLAIR 表同格式) */
+for (const [cid, tbl] of Object.entries({
+  wukong:   { cheavy: { x: 34, y: -120, ring: 12, spark: 9, sparkPow: 5, rise: 4, color: '#ffd24a', color2: '#ff6b3d' },
+              dive:   { x: 26, y: -56, shock: 2, dust: 12, spark: 10, sparkPow: 6, shake: 5, color: '#ffd24a', color2: '#ff6b3d' },
+              heavy2: { x: 52, y: -92, dust: 6, spark: 8, sparkPow: 5, shake: 3, color: '#ff6b3d', color2: '#e8b22a' } },
+  houyi:    { cheavy: { x: 30, y: -116, ring: 12, spark: 9, rise: 4, color: '#ffb648', color2: '#4a6cb0' },
+              dive:   { x: 24, y: -54, dust: 10, spark: 9, shake: 4, color: '#ffb648', color2: '#c6d0e0' } },
+  angela:   { cheavy: { x: 30, y: -114, ring: 12, spark: 10, rise: 6, color: '#ff8428', color2: '#c94aff' },
+              dive:   { x: 24, y: -54, dust: 10, spark: 9, shake: 4, color: '#ff6b3d', color2: '#864aac' },
+              heavy2: { x: 46, y: -90, ring: 10, spark: 9, flash: 0.1, shake: 3, color: '#ff8428', color2: '#ff4a2e' } },
+  diaochan: { cheavy: { x: 30, y: -114, ring: 12, spark: 9, petals: 12, rise: 4, color: '#ff9db8', color2: '#e2547a' },
+              dive:   { x: 24, y: -54, dust: 10, spark: 9, petals: 10, shake: 4, color: '#ff9db8', color2: '#e2547a' },
+              dashslash: { x: 52, y: -88, dust: 8, spark: 8, sparkPow: 4, shake: 3, color: '#ff9db8', color2: '#e2547a' } },
+  doctor:   { cheavy: { x: 30, y: -114, ring: 12, spark: 9, rise: 4, color: '#7fd3ff', color2: '#2a66a8' },
+              dive:   { x: 24, y: -54, dust: 10, spark: 9, shake: 4, color: '#7fd3ff', color2: '#50a0dc' } },
+  tank:     { cheavy: { x: 26, y: -114, ring: 14, spark: 10, sparkPow: 6, rise: 4, color: '#f5cc36', color2: '#e8622c' },
+              dive:   { x: 22, y: -50, shock: 3, dust: 16, spark: 12, sparkPow: 7, shake: 7, color: '#f5cc36', color2: '#e8622c' },
+              heavy2: { x: 44, y: -86, shock: 2, dust: 10, spark: 9, shake: 5, color: '#f5cc36', color2: '#e8622c' } },
+  ayame:    { cheavy: { x: 30, y: -118, ring: 12, spark: 9, rise: 4, color: '#c8d8ff', color2: '#5b7dff' },
+              dive:   { x: 24, y: -54, dust: 10, spark: 9, shake: 4, color: '#c8d8ff', color2: '#5b7dff' },
+              dashslash: { x: 62, y: -84, dust: 8, spark: 8, shake: 3, color: '#c8d8ff', color2: '#5b7dff' } },
+})) {
+  const mv = DATA[cid] && DATA[cid].moves;
+  if (!mv) continue;
+  for (const [k, f] of Object.entries(tbl)) if (mv[k] && !mv[k].flair) mv[k].flair = f;
+}
+
+
+/* ================================================================================
+   必杀 / 超必 范围 + 炫酷强化 (M1.4 ·「必杀技范围不够大, 不够炫酷」)
+   两件事一起做, 而且都做成"看得见=打得到"(判定盒与视觉同一系数, 不做欺骗性判定):
+
+   A) 范围: 近战必杀的判定框横向拉长、纵向加高; 远程必杀的弹体放大(hitScale,
+      Projectile.box/draw 同时读取); 超必分镜的 cine 判定盒统一加宽。
+   B) 炫酷: 给每个必杀/超必补/加强一层 flair(冲击环、星屑、光柱、震屏、喊招),
+      原本没有 flair 的补上, 已有的适度加料 —— 放技能"有排面"。
+
+   数值写在「全员上调」系数之前, 所以伤害仍会被统一系数抬一档; 这里只动
+   range/演出, 不重复调伤害。 */
+(() => {
+  // 近战必杀: [横向额外 reach, 顶部额外高度, 底部额外下探]
+  const MELEE_SPECIAL = {
+    mack:  [46, 24, 6], ayame: [40, 20, 6], wukong: [40, 22, 6], tank: [40, 20, 8],
+  };
+  for (const [cid, [dx, up, dn]] of Object.entries(MELEE_SPECIAL)) {
+    const m = DATA[cid] && DATA[cid].moves.special;
+    if (!m || !m.box) continue;
+    m.box = { x1: m.box.x1, x2: m.box.x2 + dx, y1: m.box.y1 - up, y2: m.box.y2 + dn };
+    m._rangeBoosted = true;
+  }
+
+  // 远程必杀: 弹体放大系数(判定+画面同步)。airspecial 一并放大, 弹幕更有存在感
+  const PROJ_SCALE = {
+    kenji: 1.5, houyi: 1.5, angela: 1.7, diaochan: 1.6, doctor: 1.5,
+  };
+  for (const [cid, s] of Object.entries(PROJ_SCALE)) {
+    for (const mk of ['special', 'airspecial']) {
+      const m = DATA[cid] && DATA[cid].moves[mk];
+      if (m && m.projectile) { m.projectile.hitScale = s; m._rangeBoosted = true; }
+    }
+  }
+
+  // 超必: 分镜命中盒统一加宽 —— 超必是"全屏大招", 站得稍偏也该扫得到
+  for (const c of Object.values(DATA)) {
+    const m = c.moves && c.moves.super;
+    if (m && m.box) {
+      m.box = { x1: Math.min(m.box.x1, -10), x2: m.box.x2 + 48, y1: m.box.y1 - 20, y2: m.box.y2 + 12 };
+    }
+  }
+
+  // 炫酷层: 必杀/超必没有 flair 的补一份, 已有的不动(尊重原作者调好的排场)
+  const FX_SPECIAL = {
+    mack:  { x: 62, y: -96, converge: 10, ring: 18, shock: 2, spark: 14, sparkPow: 6, dust: 8, flash: 0.16, shake: 5 },
+    kenji: { x: 46, y: -95, ring: 14, spark: 10, sparkPow: 5, flash: 0.12 },
+  };
+  const genColors = cid => ({ color: DATA[cid].theme2, color2: DATA[cid].theme });
+  for (const cid of Object.keys(DATA)) {   // ROSTER 在文件末尾才声明, 这里用 DATA 键
+    const mv = DATA[cid].moves;
+    // 必杀: 没有 flair 就补一份带招名喊话的中量级演出
+    if (mv.special && !mv.special.flair) {
+      const base = FX_SPECIAL[cid] || { x: 54, y: -94, converge: 8, ring: 15, spark: 12, sparkPow: 6, dust: 6, flash: 0.14, shake: 4 };
+      mv.special.flair = Object.assign({}, base, genColors(cid),
+        { text: (mv.special.name || '必殺') + '!' });
+    }
+    // 超必: 没有 flair 就补一份"大招级"演出(光柱 + 强闪 + 强震 + 大喊)
+    if (mv.super && !mv.super.flair) {
+      mv.super.flair = Object.assign(
+        { x: 36, y: -104, converge: 18, ring: 24, shock: 3, spark: 20, sparkPow: 8,
+          pillar: true, rise: 5, flash: 0.32, shake: 9, textSize: 18 },
+        genColors(cid), { text: (mv.super.name || '超必殺') + '!!' });
+    }
+  }
+})();
+
+
 (() => {
   const K = { dmg: 1.6, chip: 1.5, guardDmg: 1.4, meterHit: 1.2 };
   const bump = (m) => {

@@ -176,11 +176,12 @@ class Fighter {
       if (!this.superReady()) return;
       this.meter = 0;
       this.world.superFlash(this, def);
+      AudioSys.sfx('superCast');   // 超必发动喊话层(M1.4): 与 superFlash 叠成"起手"
       // 聚气 burst: embers gather into the body during the super flash
       // (the flash freezes the world, so these drift inward in slow motion)
       Effects.converge(this.x, this.y - 85, [this.c.theme, this.c.theme2, '#ffffff'], 42, 110);
     }
-    if (def.kind === 'special') this.specialCd = def.cooldown || 0;
+    if (def.kind === 'special') { this.specialCd = def.cooldown || 0; AudioSys.sfx('skillCast'); }
     if (def.invuln) this.invuln = Math.max(this.invuln, def.invuln);
     if (!chained) { this.rekka = false; this.rekkaH = false; }
     this.state = 'attack';
@@ -380,9 +381,10 @@ class Fighter {
     m.t++;
 
     const d = m.def;
-    // swing sound just before active frames
+    // swing sound just before active frames (兜底: 招式没写 sfx 也不许无声出刀)
     if (!m.sfxDone && m.t >= Math.max(1, d.startup - 3)) {
-      AudioSys.sfx(d.sfx); m.sfxDone = true;
+      AudioSys.sfx(d.sfx || (d.kind === 'light' ? 'whooshL' : 'whooshH'));
+      m.sfxDone = true;
     }
     // super act 1 聚气: inward ember stream while charging
     if (d.kind === 'super' && m.t < d.startup && m.t % 2 === 0) {
@@ -558,6 +560,7 @@ class Fighter {
       opp.setAnim('hit', true);
       this.combo.count++; this.combo.timer = 60;
       this.world.stats.maxCombo = Math.max(this.world.stats.maxCombo, this.combo.count);
+      AudioSys.sfx('hurtH');   // 演出每一拍的受击层(M1.4)
       // restart the anim ON its slash frame so every cine hit reads as a cut
       this.setAnim(s.done % 2 === 0 ? 'attack1' : 'attack2', true);
       const sImp = this.c.moves.super.impact !== undefined ? this.c.moves.super.impact : 2;
@@ -617,6 +620,7 @@ class Fighter {
       this.world.hitstop(18);
       this.world.shake(variant === 'B' ? 13 : 11, 16);
       AudioSys.sfx('hitH');
+      AudioSys.sfx('hurtCrit');   // 终结一击的受击层(M1.4)
       this.superSeq = null; this.cineSmear = null;
       this.state = 'idle'; this.move = null;
       this.setAnim('idle', true);
@@ -631,6 +635,7 @@ class Fighter {
     opp.lastHurt = this.world.tick;
     opp.flash = 5;
     opp.setAnim('hit', true);
+    AudioSys.sfx('hurtH');   // 演出每一拍都让被打的人出声(M1.4)
     this.combo.count++; this.combo.timer = 60;
     this.world.stats.maxCombo = Math.max(this.world.stats.maxCombo, this.combo.count);
   }
@@ -646,6 +651,7 @@ class Fighter {
     opp.kdPending = true;
     this.combo.count++; this.combo.timer = 90;
     this.world.stats.maxCombo = Math.max(this.world.stats.maxCombo, this.combo.count);
+    AudioSys.sfx('hurtCrit');   // 专属分镜的终结受击层(M1.4)
     this.superSeq = null; this.cineSmear = null;
     this.state = 'idle'; this.move = null;
     this.setAnim('idle', true);
@@ -927,7 +933,7 @@ class Fighter {
       this.lastBlockT = this.world.tick;
       this.guard += (info.guardDmg || 8) * 1.45; // 破防积累: 1.0(太难)->1.6(偏易)->1.45(Eric 微调到中间)
       if (this.guard >= 100) return this.guardCrush(dir);
-      const chip = info.chip || 0;
+      const chip = Math.round((info.chip || 0) * (attacker.dmgDealt || 1));
       if (chip > 0) { this.hp = Math.max(1, this.hp - chip); this.lastHurt = this.world.tick; } // chip never KOs
       this.blockstun = info.blockstun || 10;
       this.vx = dir * Math.max(3, (info.knock || 4) * 0.6);
@@ -941,7 +947,9 @@ class Fighter {
     const wasAir = !this.grounded; // 在挑空 pop 之前采样: 本次是否空中受击
     const scale = attacker.comboScale(this);
     // c.dmgTaken: 角色级减伤系数(肉盾 0.8) —— maxHp 保持 100, HUD/完胜判定不受影响
-    const dmg = Math.max(1, Math.round(info.dmg * scale * (this.c.dmgTaken || 1)));
+    // attacker.dmgDealt: 实例级出伤系数(闯关杂兵 <1) —— 对战不设, 只有 Quest 会挂
+    const dmg = Math.max(1, Math.round(info.dmg * scale * (this.c.dmgTaken || 1) *
+                                       (attacker.dmgDealt || 1)));
     this.hp = Math.max(0, this.hp - dmg);
     this.lastHurt = this.world.tick;
     this.flash = 6;
@@ -972,6 +980,8 @@ class Fighter {
     this.gainMeter(Math.round(dmg * 0.7));
     attacker.gainMeter(info.meterHit || 8);
     AudioSys.sfx(info.hitSfx || 'hitL');
+    // 受击层(M1.4): 打击点之外, 挨打的一方按伤害分档出一声闷响 —— 「被击打要有音效」
+    AudioSys.sfx(dmg >= 18 ? 'hurtCrit' : dmg >= 9 ? 'hurtH' : 'hurtL');
     return 'hit';
   }
 

@@ -11,49 +11,118 @@ const Quest = {
   st: null,
   _stageOrig: { left: STAGE.left, right: STAGE.right },
 
+  /* 难度旋钮 (M1.4 重调 —— 原版 normal 实测"打不过": 一关 5 杂兵 + Boss 225血,
+     全程零补给, 玩家 150 血一路硬吃)。现在每档都同时动四件事:
+       mook/boss   血量系数
+       dmg/bossDmg 敌方出伤系数(fighter.receiveHit 读 attacker.dmgDealt)
+       attackers   同屏最多几个敌人可以出招(其余只走位围着 —— 恐龙快打式喘息)
+       rest        敌人一套打完的强制歇招 tick
+       lives       续关次数(残机): 倒下后原地复活, 不用重打整关
+       drop/heal   杂兵掉补给概率 / 清波与过关的回血比例 */
   DIFF: {
-    easy:   { mook: 0.8,  boss: 0.85, ai: 'easy',   bossAi: 'normal', heal: 0.6 },
-    normal: { mook: 1.0,  boss: 1.0,  ai: 'easy',   bossAi: 'normal', heal: 0.45 },
-    hard:   { mook: 1.25, boss: 1.15, ai: 'normal', bossAi: 'hard',   heal: 0.35 },
+    easy:   { mook: 0.7,  boss: 0.62, ai: 'easy',   bossAi: 'easy',   dmg: 0.55, bossDmg: 0.65,
+              attackers: 1, rest: 46, lives: 4, drop: 0.6,  waveHeal: 0.2,  heal: 0.75 },
+    normal: { mook: 0.85, boss: 0.78, ai: 'easy',   bossAi: 'normal', dmg: 0.7,  bossDmg: 0.8,
+              attackers: 2, rest: 30, lives: 2, drop: 0.45, waveHeal: 0.14, heal: 0.6 },
+    hard:   { mook: 1.15, boss: 1.05, ai: 'normal', bossAi: 'hard',   dmg: 0.95, bossDmg: 1.0,
+              attackers: 2, rest: 12, lives: 1, drop: 0.28, waveHeal: 0.08, heal: 0.4 },
   },
 
+  /* 补给道具: 清波必掉一个, 杂兵按 D.drop 概率掉 —— 闯关"续航"的来源 */
+  ITEMS: {
+    drink: { name: '能量饮料', hp: 0.20, c1: '#ffb648', c2: '#ff7a2a' },
+    meal:  { name: '食堂盒饭', hp: 0.42, c1: '#8ae06a', c2: '#2f7a3a' },
+    batt:  { name: '备用电池', meter: 50, c1: '#7fd3ff', c2: '#2a66a8' },
+  },
+
+  /* 五幕剧情线(M1.4: 原三幕扩到五幕, 每幕补齐 开场/波次间/关底/收场 四段对白)。
+     wave.talk 为可选的"波次前对白" —— 只挂在第二波之后, 第一幕第一波保持直进,
+     免得刚进关就被一段字挡住(也让 headless smoke 的 walk→fight 断言继续成立)。 */
   LEVELS: [
     {
       name: '第一幕 · 校门与中心广场', sub: 'ACT I', stageSel: 0, worldW: 2400,
       intro: [['广播', '警报——外部人员强行破门，全体师生就近避险！'],
-              ['你', '雷雨夜，变电所警报全红。校门这一段，交给我。']],
-      bossTalk: [['破门先锋', '这所学校的电，从今晚起归我们调度。']],
-      outro: [['你', '他倒下前咬着牙：「机房……才是我们要的东西。」']],
+              ['你', '雷雨夜，变电所警报全红。校门这一段，交给我。'],
+              ['同学', '他们一进来就砸配电箱……说要把全校的电「接管」！'],
+              ['你', '那就先把他们从校门赶回去。']],
+      bossTalk: [['破门先锋', '这所学校的电，从今晚起归我们调度。'],
+                 ['你', '调度权在总闸上。你连校门都还没过。']],
+      outro: [['你', '他倒下前咬着牙：「机房……才是我们要的东西。」'],
+              ['你', '机房。全校的数据和备用电源都在那儿。']],
       waves: [
-        { at: 780, mooks: [['kenji', 40], ['kenji', 40]] },
-        { at: 1560, mooks: [['kenji', 40], ['ayame', 44], ['kenji', 40]] },
+        { at: 760, mooks: [['kenji', 38], ['kenji', 38]] },
+        { at: 1560, talk: [['你', '第二波？看来他们不只是来砸箱子的。']],
+          mooks: [['kenji', 40], ['ayame', 42], ['kenji', 40]] },
       ],
-      boss: { id: 'kenji', hp: 150, name: '破门先锋' },
+      boss: { id: 'kenji', hp: 124, name: '破门先锋' },
     },
     {
       name: '第二幕 · 实训楼机房', sub: 'ACT II', stageSel: 1, worldW: 2400,
-      intro: [['你', '机房的灯全灭了，只剩机柜指示灯在雨声里一格一格闪。']],
-      bossTalk: [['影袭·夜刃', '再往前一步，全校的数据跟你一起断电。']],
-      outro: [['你', '她最后只说了半句：「主楼穹顶……总闸在他手上。」']],
+      intro: [['你', '机房的灯全灭了，只剩机柜指示灯在雨声里一格一格闪。'],
+              ['值班老师', '备用电源被人切了！再断十分钟，这学期的实训数据全没。'],
+              ['你', '十分钟。够了。']],
+      bossTalk: [['影袭·夜刃', '再往前一步，全校的数据跟你一起断电。'],
+                 ['你', '那就别让我往前——你拦得住吗？']],
+      outro: [['你', '她最后只说了半句：「上面……还有人在等合闸。」'],
+              ['你', '上面。风雨连廊，然后是运动场。']],
       waves: [
-        { at: 740, mooks: [['ayame', 42], ['ayame', 42]] },
-        { at: 1540, mooks: [['ayame', 42], ['houyi', 46], ['ayame', 42]] },
+        { at: 740, mooks: [['ayame', 40], ['ayame', 40]] },
+        { at: 1540, talk: [['你', '他们在往机柜后面拉线——想把机房的电引到别处去。']],
+          mooks: [['ayame', 40], ['doctor', 44], ['houyi', 44]] },
       ],
-      boss: { id: 'ayame', hp: 150, name: '影袭·夜刃' },
+      boss: { id: 'ayame', hp: 132, name: '影袭·夜刃' },
     },
     {
-      name: '终幕 · 主楼穹顶变电中枢', sub: 'FINAL ACT', stageSel: 3, worldW: 2600,
-      intro: [['你', '穹顶之下，全校的总闸被人握在手里。'],
-              ['？？？', '想合闸？先从我这一棍下过去！']],
-      bossTalk: [['断电者·首谋', '这一夜的黑暗，我说了才算！']],
-      outro: [['你', '总闸合上。灯，一层一层亮回来了。']],
+      name: '第三幕 · 风雨连廊与运动场', sub: 'ACT III', stageSel: 2, worldW: 2500,
+      intro: [['你', '连廊的雨横着打进来，灯管一路炸到运动场。'],
+              ['保安', '运动场的配电柜被围了！那是主楼的上一级线路！'],
+              ['你', '上一级——那就是通往总闸的路。']],
+      bossTalk: [['电缆窃贼·舞影', '这条线，我先接走一半。你不会介意吧？'],
+                 ['你', '我很介意。放下钳子。']],
+      outro: [['你', '配电柜锁回去了。灯管一节一节，又亮回一段。'],
+              ['你', '再往下——地下变电所。']],
       waves: [
-        { at: 700, mooks: [['wukong', 46], ['houyi', 44]] },
-        { at: 1400, mooks: [['angela', 44], ['houyi', 44], ['wukong', 46]] },
-        { at: 2000, mooks: [['ayame', 42], ['kenji', 42]] },
+        { at: 720, mooks: [['diaochan', 42], ['kenji', 40]] },
+        { at: 1520, talk: [['你', '雨越大他们越往柜子上爬——上级线路不能让他们摸到。']],
+          mooks: [['diaochan', 42], ['angela', 44], ['kenji', 40]] },
       ],
-      boss: { id: 'wukong', hp: 170, name: '断电者·首谋' },
+      boss: { id: 'diaochan', hp: 140, name: '电缆窃贼·舞影' },
     },
+    {
+      name: '第四幕 · 地下变电所', sub: 'ACT IV', stageSel: 1, worldW: 2500,
+      intro: [['你', '地下室的水已经到脚踝，母排上还挂着人为搭的短接线。'],
+              ['电工班长', '别碰红色那根！他们把互锁全拆了，现在合闸就是短路。'],
+              ['你', '那就先把互锁装回去。']],
+      bossTalk: [['配电室监工·铁闸', '这道门后面是全校的命。你带钥匙了吗？'],
+                 ['你', '不用钥匙。我拆门。']],
+      outro: [['你', '互锁复位，水泵起转，水位开始往下走。'],
+              ['你', '只剩最后一段——主楼穹顶。']],
+      waves: [
+        { at: 720, mooks: [['tank', 46], ['doctor', 42]] },
+        { at: 1520, talk: [['你', '他们在守闸门——越靠近总闸，人越多。']],
+          mooks: [['tank', 46], ['houyi', 44], ['doctor', 42]] },
+      ],
+      boss: { id: 'tank', hp: 150, name: '配电室监工·铁闸' },
+    },
+    {
+      name: '终幕 · 主楼穹顶变电中枢', sub: 'FINAL ACT', stageSel: 3, worldW: 2750,
+      intro: [['你', '穹顶之下，全校的总闸被人握在手里。'],
+              ['？？？', '想合闸？先从我这一棍下过去！'],
+              ['你', '一夜的黑，到这里为止。']],
+      bossTalk: [['断电者·首谋', '这一夜的黑暗，我说了才算！'],
+                 ['你', '你说了不算。开关在我手上。']],
+      outro: [['你', '总闸合上。灯，一层一层亮回来了。'],
+              ['广播', '各位师生，全校供电已恢复。今晚的自习，照常。']],
+      waves: [
+        { at: 700, mooks: [['wukong', 44], ['houyi', 42]] },
+        { at: 1400, talk: [['你', '他把人全押在这儿了——总闸就在他背后。']],
+          mooks: [['angela', 42], ['houyi', 42], ['wukong', 44]] },
+        { at: 2000, talk: [['你', '最后一圈。合闸的手，只需要腾出一只。']],
+          mooks: [['diaochan', 42], ['tank', 46]] },
+      ],
+      boss: { id: 'wukong', hp: 168, name: '断电者·首谋' },
+    },
+
   ],
 
   MOOK_TINTS: ['brightness(0.62) saturate(0.45)', 'brightness(0.56) saturate(0.5) hue-rotate(40deg)',
@@ -61,11 +130,14 @@ const Quest = {
 
   /* ---------------- lifecycle ---------------- */
   start(heroId, diff) {
+    const D = this.DIFF[diff] || this.DIFF.normal;
     this.st = {
       heroId, diff: diff || 'normal',
-      level: 0, phase: 'talk', talkQ: [], talkNext: 'walk',
+      level: 0, phase: 'talk', talkQ: [], talkNext: 'walk', talkT: 0,
       cam: 0, waveIdx: 0, wavesDone: false, arenaLock: null,
       enemies: [], boss: null, player: null, dummy: null,
+      items: [], saidWave: {},
+      lives: D.lives, livesMax: D.lives, revives: 0,
       kills: 0, t0: G.tick, over: false, paused: false,
       fade: 24, // 开幕淡入
     };
@@ -88,9 +160,12 @@ const Quest = {
     st.wavesDone = false;
     st.arenaLock = null;
     st.enemies = [];
+    st.items = [];
+    st.saidWave = {};
     st.boss = null;
     st.phase = 'talk';
     st.talkQ = L.intro.slice();
+    st.talkT = 0;
     st.talkNext = 'walk';
     st.fade = 24;
     G.projectiles = [];
@@ -99,11 +174,13 @@ const Quest = {
     const keepHp = st.player ? st.player.hp : null;
     const keepMeter = st.player ? st.player.meter : 0;
     st.player = new Fighter(st.heroId, 220, 1, G);
-    // 过关回血(按难度)而非全恢复 —— 保留闯关资源压力
+    // 过关回血(按难度)而非全恢复 —— 保留闯关资源压力。
+    // (原实现 clamp 到 100, 但 BASE_HP 早已是 150 —— 过第一关反而被削到 100 血,
+    //  这是"越打越没续航"的主因之一, M1.4 修正为按 maxHp 归一)
     if (keepHp !== null) {
       const D = this.DIFF[st.diff];
-      st.player.hp = Math.min(100, Math.round(keepHp + 100 * D.heal));
-      st.player.meter = keepMeter;
+      st.player.hp = Math.min(st.player.maxHp, Math.round(keepHp + st.player.maxHp * D.heal));
+      st.player.meter = Math.min(100, keepMeter + 25); // 过关补一截气, 下一关开局有牌可打
     }
     st.player.dispHp = st.player.hp;
     // 影子陪练(不更新不绘制): 无敌人时给 player.update(opp) 一个稳定视线锚
@@ -131,9 +208,13 @@ const Quest = {
     f.maxHp = f.hp = Math.round(hp * D.mook);
     f.dispHp = f.hp;
     f.isMook = true;
+    f.dmgDealt = D.dmg;            // 杂兵出伤系数(fighter.receiveHit 读取)
+    f.gainMeter = () => {};        // 杂兵不攒气 —— 小兵放超必是"打不过"的隐形元凶
+    f.superReady = () => false;
     f.tint = this.MOOK_TINTS[tintIdx % this.MOOK_TINTS.length];
     f._ai = new AIController(f, this.st.player, D.ai, G);
     f._deadT = 0;
+    f._rest = 20;                  // 入场先站一拍, 不能落地即抡
     return f;
   },
 
@@ -162,15 +243,101 @@ const Quest = {
     b.maxHp = b.hp = Math.round(L.boss.hp * D.boss * BASE_HP / 100);
     b.dispHp = b.hp;
     b.isBoss = true;
+    b.dmgDealt = D.bossDmg;
     b.bossName = L.boss.name;
     b._ai = new AIController(b, st.player, D.bossAi, G);
     b._deadT = 0;
+    b._rest = 30;
     st.boss = b;
     st.enemies.push(b);
     setAnn('BOSS', 'ko', 70, L.boss.name);
     AudioSys.sfx('superFlash');
   },
 
+  /* ---------------- 补给道具(续航) ----------------
+     恐龙快打式的"打箱子出烤鸡": 杂兵按概率掉、每清一波必掉一个。落地后原地
+     发光待取, 玩家身体碰到即生效 —— 这是闯关模式唯一的回血/回气来源。 */
+  dropItem(x, kind) {
+    this.st.items.push({
+      x, y: STAGE.ground - 130, vy: -5.5, kind, t: 0, life: 1500, landed: false,
+    });
+  },
+
+  _rollDrop(x) {
+    const st = this.st, D = this.DIFF[st.diff];
+    if (Math.random() >= D.drop) return;
+    const p = st.player;
+    // 缺血就给血, 血够就给气 —— 掉落跟着需求走, 不做无用功
+    const kind = p.hp < p.maxHp * 0.75 ? 'drink' : (Math.random() < 0.6 ? 'batt' : 'drink');
+    this.dropItem(x, kind);
+  },
+
+  _updateItems() {
+    const st = this.st, p = st.player;
+    for (const it of st.items) {
+      it.t++;
+      if (!it.landed) {
+        it.vy += 0.55;
+        it.y += it.vy;
+        if (it.y >= STAGE.ground - 22) { it.y = STAGE.ground - 22; it.landed = true; it.vy = 0; Effects.dust(it.x, STAGE.ground, 4); }
+      }
+      if (it.t > it.life) { it.dead = true; continue; }
+      if (p.dead) continue;
+      const bb = p.bodyBox();
+      if (it.x > bb.x1 - 18 && it.x < bb.x2 + 18 && it.y > bb.y1 - 10 && it.y < bb.y2 + 26) {
+        this._pickUp(it);
+        it.dead = true;
+      }
+    }
+    st.items = st.items.filter(x => !x.dead);
+  },
+
+  _pickUp(it) {
+    const st = this.st, p = st.player, D = this.ITEMS[it.kind];
+    if (D.hp) {
+      const gain = Math.min(p.maxHp - p.hp, Math.round(p.maxHp * D.hp));
+      p.hp += gain;
+      Effects.text(p.x, p.y - 200, `+${gain} 体力`, D.c1, 14);
+    }
+    if (D.meter) {
+      p.gainMeter(D.meter);
+      Effects.text(p.x, p.y - 200, `+${D.meter} 气`, D.c1, 14);
+    }
+    Effects.ring(it.x, it.y, D.c1, 12);
+    Effects.rise(it.x, it.y + 18, D.c2, 5);
+    AudioSys.sfx('menuSel');
+  },
+
+  /* 原地续关: 站起来、半血、两秒无敌, 顺手把贴身的敌人弹开 —— 免得"复活即被围死" */
+  _revive() {
+    const st = this.st, p = st.player;
+    p.dead = false;
+    p.hp = Math.round(p.maxHp * 0.62);
+    p.dispHp = p.hp;
+    p.state = 'idle'; p.move = null; p.superSeq = null; p.cineSmear = null;
+    p.hitstun = 0; p.blockstun = 0; p.guard = 0; p.kdPending = false;
+    p.grounded = true; p.y = STAGE.ground; p.vx = 0; p.vy = 0;
+    p.frozen = 0; p.flash = 0; p.juggleN = 0;
+    p.combo = { count: 0, timer: 0 }; p.comboable = 0;
+    p.invuln = 130;
+    p.meter = Math.max(p.meter, 40);
+    p.setAnim('idle', true);
+    st.overT = 0;
+    for (const e of st.enemies) {
+      if (e.dead) continue;
+      if (Math.abs(e.x - p.x) < 200) {
+        e.x = Math.max(STAGE.left, Math.min(STAGE.right, p.x + (Math.sign(e.x - p.x) || 1) * 240));
+      }
+      e.frozen = Math.max(e.frozen, 34);
+      e._rest = Math.max(e._rest || 0, 40);
+    }
+    setAnn('CONTINUE', 'ko', 66, `残机 ${st.lives}`);
+    Effects.ring(p.x, p.y - 80, '#ffe27a', 18);
+    Effects.rise(p.x, p.y, '#ffe27a', 8);
+    Effects.flashFrame({ alpha: 0.35, t: 3 });
+    G.shake(8, 12);
+    AudioSys.sfx('superFlash');
+  },
   /* ---------------- per-tick update ---------------- */
   update() {
     const st = this.st;
@@ -192,12 +359,18 @@ const Quest = {
     if (st.phase === 'talk' || st.phase === 'clear' || st.phase === 'over') {
       Effects.update();
       if (st.phase === 'talk') {
+        st.talkT++;
         if (Input.consume('KeyJ') || Input.consume('Enter') || Input.click(0, 0, 1024, 576)) {
           st.talkQ.shift();
+          st.talkT = 0;
           AudioSys.sfx('menuMove');
           if (!st.talkQ.length) {
             st.phase = st.talkNext;
             if (st.talkNext === 'bossfight') this.spawnBoss();
+            if (st.talkNext === 'wavefight') {  // 波次前对白结束 -> 立刻开战
+              st.phase = 'fight';
+              this.spawnWave(L.waves[st.waveIdx]);
+            }
             if (st.talkNext === 'nextlevel') {
               if (st.level + 1 >= this.LEVELS.length) { st.phase = 'clear'; AudioSys.playBgm('result'); AudioSys.sfx('win'); }
               else this.loadLevel(st.level + 1);
@@ -210,6 +383,7 @@ const Quest = {
           st.player = null;
           this.loadLevel(lv);
           st.kills = kills;
+          st.lives = this.DIFF[df].lives;   // 重打本关: 续关次数一并复位
           st.phase = 'talk';
           AudioSys.sfx('menuSel');
         } else if (Input.consume('KeyK')) { this.exit(); }
@@ -240,6 +414,16 @@ const Quest = {
       STAGE.left = 50; STAGE.right = L.worldW - 50;
       const nextWave = L.waves[st.waveIdx];
       if (nextWave && p.x >= nextWave.at) {
+        // 波次前对白(可选): 先说完再开打 —— 剧情不再只挤在开场/关底两头
+        const key = st.level + ':' + st.waveIdx;
+        if (nextWave.talk && !st.saidWave[key]) {
+          st.saidWave[key] = true;
+          st.phase = 'talk';
+          st.talkQ = nextWave.talk.slice();
+          st.talkT = 0;
+          st.talkNext = 'wavefight';
+          return;
+        }
         st.phase = 'fight';
         this.spawnWave(nextWave);
         return; // 本 tick 结束: 防止下方清场判定用到 spawn 前的 alive 快照
@@ -251,6 +435,7 @@ const Quest = {
         st.cam = Math.max(0, Math.min(L.worldW - 1024, L.worldW - 1024));
         st.phase = 'talk';
         st.talkQ = L.bossTalk.slice();
+        st.talkT = 0;
         st.talkNext = 'bossfight';
         return;
       }
@@ -264,10 +449,18 @@ const Quest = {
         if (st.boss && st.boss.dead) {
           st.phase = 'talk';
           st.talkQ = L.outro.slice();
+          st.talkT = 0;
           st.talkNext = 'nextlevel';
           st.arenaLock = null;
           return;
         }
+        // 清波奖励(续航): 小回血 + 必掉一份补给, 让下一段路有牌可打
+        const D = this.DIFF[st.diff];
+        const heal = Math.min(p.maxHp - p.hp, Math.round(p.maxHp * D.waveHeal));
+        if (heal > 0) { p.hp += heal; Effects.text(p.x, p.y - 220, `WAVE CLEAR +${heal}`, '#8ae06a', 14); }
+        p.gainMeter(14);
+        this.dropItem(Math.max(STAGE.left + 40, Math.min(STAGE.right - 40, p.x + 150)),
+                      p.hp < p.maxHp * 0.6 ? 'meal' : 'batt');
         st.waveIdx++;
         st.arenaLock = null;
         st.phase = 'walk';
@@ -278,13 +471,25 @@ const Quest = {
 
     // ---- pads ----
     p.pad = humanPad();
-    // 敌人: 最近 2 名可攻击, 其余只走位(围而不殴 —— 恐龙快打式喘息)
+    // 敌人出招名额(M1.4 难度阀门): 同屏最多 D.attackers 个可以出招, 且背后
+    // 最多只允许 1 个 —— 原实现"最近两名随时开火"会从前后同时抡, 玩家只能
+    // 朝一个方向格挡, 三明治必死。其余人只走位围着(恐龙快打式喘息)。
+    const D = this.DIFF[st.diff];
     const ranked = alive.slice().sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x));
-    for (const e of alive) {
+    let atkSlots = D.attackers, backSlots = 1;
+    for (const e of ranked) {
       e.pad = e._ai.update();
-      if (ranked.indexOf(e) > 1) {
-        e.pad.light = e.pad.heavy = e.pad.special = e.pad.super = false;
+      // 一套打完强制歇招: 敌人不会无缝续压, 玩家有反打窗口
+      if (e._prevMove && !e.move) e._rest = D.rest;
+      e._prevMove = e.move;
+      if (e._rest > 0) e._rest--;
+      const behind = (Math.sign(e.x - p.x) || 1) !== p.facing;
+      let may = e._rest <= 0;
+      if (!e.isBoss) {                              // Boss 不占名额, 永远可以打
+        may = may && atkSlots > 0 && (!behind || backSlots > 0);
+        if (may) { atkSlots--; if (behind) backSlots--; }
       }
+      if (!may) e.pad.light = e.pad.heavy = e.pad.special = e.pad.super = false;
       // 玩家超杀演出中: 全场敌人定身(cine 不被围殴打断)
       if (p.superSeq) { e.pad = emptyPad(); e.frozen = Math.max(e.frozen, 2); }
     }
@@ -302,6 +507,7 @@ const Quest = {
           st.kills++;
           Effects.spark(e.x, e.y - 90, 0, ['#ffd24a', '#ffffff', '#c8452c'], 12, 5);
           p.gainMeter(8);
+          if (!e.isBoss) this._rollDrop(e.x);   // 杂兵掉补给(续航来源)
         }
         if (e._deadT < 56) e.update(p); // 死亡动画推进
       }
@@ -341,7 +547,12 @@ const Quest = {
     }
     if (p.dead) {
       st.overT = (st.overT || 0) + 1;
-      if (st.overT > 52 && st.phase !== 'over') { st.phase = 'over'; Effects.flashFrame({ alpha: 0.4, t: 3 }); }
+      // 续关(残机): 还有次数就原地站起来接着打, 不用把整关从头再走一遍 ——
+      // 这是"剧情推不下去"的直接解药; 用光了才 GAME OVER
+      if (st.overT > 52 && st.phase !== 'over') {
+        if (st.lives > 0) { st.lives--; st.revives++; this._revive(); }
+        else { st.phase = 'over'; Effects.flashFrame({ alpha: 0.4, t: 3 }); }
+      }
     }
     for (const pr of G.projectiles) {
       if (pr.dead) continue;
@@ -364,6 +575,7 @@ const Quest = {
     for (const pr of G.projectiles) pr.update();
     G.projectiles = G.projectiles.filter(x => !x.dead);
 
+    this._updateItems();
     Effects.update();
 
     // 舞台环境粒子(与对战同款, 世界坐标下仍成立: 只在可视窗附近撒)
@@ -429,6 +641,7 @@ const Quest = {
       else f.draw(ctx);
     };
     // 敌人(远->近) -> 玩家(最上)
+    this._drawItems(ctx);
     for (const e of st.enemies) if (!e.dead || e._deadT < 56) drawF(e);
     drawF(st.player);
     for (const pr of G.projectiles) pr.draw(ctx);
@@ -453,7 +666,7 @@ const Quest = {
 
     // 对话条 / 结算 / 阵亡
     if (st.phase === 'talk' && st.talkQ.length) this._dialog(ctx, st.talkQ[0]);
-    if (st.phase === 'over') this._overlay(ctx, 'GAME OVER', '#e8306a', 'J / 点击 重试本关 · K 回标题');
+    if (st.phase === 'over') this._overlay(ctx, 'GAME OVER', '#e8306a', '残機用尽 · J / 点击 重试本关(残机重置) · K 回标题');
     if (st.phase === 'clear') this._clear(ctx);
     if (st.paused) this._overlay(ctx, '一時停止', '#ffe27a', 'J / 点击 继续 · ESC 退出闯关');
 
@@ -463,11 +676,55 @@ const Quest = {
     }
   },
 
+  /* 掉落补给的像素小图标: 饮料罐 / 盒饭 / 电池, 落地后上下浮动 + 光晕呼吸 */
+  _drawItems(ctx) {
+    const st = this.st;
+    for (const it of st.items) {
+      const D = this.ITEMS[it.kind];
+      const bob = it.landed ? Math.sin(it.t * 0.13) * 3 : 0;
+      const x = Math.round(it.x), y = Math.round(it.y + bob);
+      const fade = it.t > it.life - 120 ? (Math.floor(it.t / 4) % 2 ? 0.3 : 1) : 1;
+      ctx.save();
+      ctx.globalAlpha = fade;
+      // 地面投影
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(x, STAGE.ground + 4, 11, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // 光晕
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = fade * (0.16 + 0.1 * Math.sin(it.t * 0.16));
+      ctx.fillStyle = D.c1;
+      ctx.fillRect(x - 16, y - 16, 32, 32);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = fade;
+      if (it.kind === 'batt') {                 // 电池: 竖罐 + 正极小帽 + 电量条
+        ctx.fillStyle = '#0d1420'; ctx.fillRect(x - 6, y - 11, 12, 22);
+        ctx.fillStyle = D.c2; ctx.fillRect(x - 5, y - 10, 10, 20);
+        ctx.fillStyle = D.c1; ctx.fillRect(x - 3, y - 14, 6, 3);
+        ctx.fillRect(x - 3, y - 6, 6, 3); ctx.fillRect(x - 3, y, 6, 3); ctx.fillRect(x - 3, y + 6, 6, 3);
+      } else if (it.kind === 'meal') {          // 盒饭: 扁盒 + 盖沿 + 两格菜
+        ctx.fillStyle = '#0d1a10'; ctx.fillRect(x - 12, y - 8, 24, 17);
+        ctx.fillStyle = D.c2; ctx.fillRect(x - 11, y - 7, 22, 15);
+        ctx.fillStyle = D.c1; ctx.fillRect(x - 11, y - 10, 22, 4);
+        ctx.fillStyle = '#fff2c8'; ctx.fillRect(x - 8, y - 3, 7, 7);
+        ctx.fillStyle = '#ff9d5c'; ctx.fillRect(x + 1, y - 3, 7, 7);
+      } else {                                  // 饮料: 易拉罐 + 拉环 + 高光
+        ctx.fillStyle = '#1a1008'; ctx.fillRect(x - 7, y - 11, 14, 22);
+        ctx.fillStyle = D.c2; ctx.fillRect(x - 6, y - 10, 12, 20);
+        ctx.fillStyle = D.c1; ctx.fillRect(x - 6, y - 4, 12, 7);
+        ctx.fillStyle = '#d8dde8'; ctx.fillRect(x - 6, y - 12, 12, 3);
+        ctx.fillStyle = '#fff8e2'; ctx.fillRect(x - 4, y - 9, 2, 17);
+      }
+      ctx.restore();
+    }
+  },
+
   _hud(ctx, L) {
     const st = this.st, p = st.player;
-    // 玩家条(左上): 名 + HP + 气
+    // 玩家条(左上): 名 + HP + 气 + 残机
     ctx.fillStyle = 'rgba(10,14,12,0.78)';
-    ctx.fillRect(14, 12, 304, 64);
+    ctx.fillRect(14, 12, 304, 82);
     ctx.fillStyle = '#3d6b58';
     ctx.fillRect(14, 12, 304, 2);
     UI.pixText(ctx, `${p.c.name} · ${p.c.cn}`, 26, 32, { size: 11, color: '#ffe27a' });
@@ -477,15 +734,26 @@ const Quest = {
     ctx.fillStyle = p.hp > p.maxHp * 0.2 ? '#e8b24e' : '#e8306a';
     ctx.fillRect(26, 40, hpw * Math.max(0, p.dispHp) / p.maxHp, 12);
     ctx.strokeStyle = '#b98f3e'; ctx.lineWidth = 1; ctx.strokeRect(26.5, 40.5, hpw - 1, 11);
+    UI.pixText(ctx, `${Math.max(0, Math.round(p.hp))}/${p.maxHp}`, 296, 50, { size: 8, align: 'right', color: '#2a1c12' });
     ctx.fillStyle = '#241d18'; ctx.fillRect(26, 56, hpw, 7);
     ctx.fillStyle = p.meter >= 100 ? '#c8452c' : '#b98f3e';
     ctx.fillRect(26, 56, hpw * p.meter / 100, 7);
-    if (p.meter >= 100 && G.tick % 30 < 18) UI.pixText(ctx, '超必殺 READY', 26, 74, { size: 8, color: '#ff9a52' });
+    // 残机(续关次数): 一颗一格, 用光才 GAME OVER
+    UI.pixText(ctx, '残機', 26, 78, { size: 9, color: '#8a9a8f' });
+    for (let i = 0; i < st.livesMax; i++) {
+      const lx = 58 + i * 13, on = i < st.lives;
+      ctx.fillStyle = on ? '#e8306a' : '#2a2028';
+      ctx.fillRect(lx, 70, 9, 9);
+      ctx.fillStyle = on ? '#ff9db8' : '#3a303a';
+      ctx.fillRect(lx, 70, 9, 2);
+    }
+    if (p.meter >= 100 && G.tick % 30 < 18) UI.pixText(ctx, '超必殺 READY', 190, 78, { size: 8, color: '#ff9a52' });
     // 关卡/波次(右上)
     UI.pixText(ctx, L.name, 1010, 28, { size: 12, align: 'right', color: '#d9a441' });
     const wavesN = L.waves.length;
     const label = st.boss ? 'BOSS' : (st.phase === 'fight' ? `WAVE ${st.waveIdx + 1}/${wavesN}` : `前进 ${Math.min(100, Math.round(st.player.x / (L.worldW - 620) * 100))}%`);
-    UI.pixText(ctx, label + ` · 击破 ${st.kills}`, 1010, 48, { size: 10, align: 'right', color: '#9aa3bd' });
+    UI.pixText(ctx, `${L.sub} ${st.level + 1}/${this.LEVELS.length} · ` + label + ` · 击破 ${st.kills}`,
+      1010, 48, { size: 10, align: 'right', color: '#9aa3bd' });
     // Boss 血条(顶中)
     const b = st.boss;
     if (b && !b.dead) {
@@ -502,10 +770,11 @@ const Quest = {
     // 底部键位提示
     ctx.fillStyle = 'rgba(10,8,6,0.7)';
     ctx.fillRect(0, 552, 1024, 24);
-    UI.pixText(ctx, 'WASD移动 · J轻 K重 U必杀 I超必 · 后拉防御 · ESC暂停', 512, 568, { size: 10, align: 'center', color: '#c9bfa8' });
+    UI.pixText(ctx, 'WASD移动 · J轻 K重 U必杀 I超必 · S+J/K 蹲攻 · 双击A/D冲刺 · 后拉防御 · ESC暂停', 512, 568, { size: 10, align: 'center', color: '#c9bfa8' });
   },
 
   _dialog(ctx, line) {
+    const st = this.st;
     const [who, text] = line;
     ctx.fillStyle = 'rgba(8,12,10,0.9)';
     ctx.fillRect(72, 434, 880, 96);
@@ -514,14 +783,23 @@ const Quest = {
     ctx.fillRect(72, 528, 880, 2);
     ctx.fillStyle = '#b98f3e';
     ctx.fillRect(72, 434, 3, 96);
-    // 名牌
+    // 名牌(说话人配色: 「你」= 金, 其余 = 敌/旁白青)
+    const isHero = who === '你';
     ctx.fillStyle = '#1e3028';
-    ctx.fillRect(92, 420, 150, 28);
-    ctx.fillStyle = '#b98f3e';
-    ctx.fillRect(92, 420, 150, 2);
-    UI.pixText(ctx, who, 167, 440, { size: 12, align: 'center', color: '#ffe27a' });
-    UI.pixText(ctx, text, 112, 486, { size: 13, color: '#e8e2d0' });
-    if (G.tick % 40 < 26) UI.pixText(ctx, '▼ J / 点击 继续', 932, 518, { size: 9, align: 'right', color: '#8a9a8f' });
+    ctx.fillRect(92, 420, 158, 28);
+    ctx.fillStyle = isHero ? '#b98f3e' : '#3d6b58';
+    ctx.fillRect(92, 420, 158, 2);
+    UI.pixText(ctx, who, 171, 440, { size: 12, align: 'center', color: isHero ? '#ffe27a' : '#8ad8ff' });
+    // 逐字显示(纯演出: 按 J 永远直接翻页, 不需要先等打完)
+    const shown = text.slice(0, Math.max(1, Math.floor((st.talkT || 0) / 1.5)));
+    UI.pixText(ctx, shown, 112, 486, { size: 13, color: '#e8e2d0' });
+    // 剩余行数指示 —— 让人知道这段还有多长
+    if (st.talkQ.length > 1) {
+      UI.pixText(ctx, `· ${st.talkQ.length - 1} `, 932, 458, { size: 9, align: 'right', color: '#5f6d63' });
+    }
+    if (shown.length >= text.length && G.tick % 40 < 26) {
+      UI.pixText(ctx, '▼ J / 点击 继续', 932, 518, { size: 9, align: 'right', color: '#8a9a8f' });
+    }
   },
 
   _overlay(ctx, big, color, hint) {
@@ -540,7 +818,9 @@ const Quest = {
     UI.pixText(ctx, 'STORY CLEAR', 512, 244, { size: 16, align: 'center', color: '#d9a441', spacing: 6 });
     const mins = ((G.tick - st.t0) / 3600).toFixed(1);
     UI.pixText(ctx, `英雄: ${st.player.c.cn} · 击破: ${st.kills} · 用时: ${mins} 分`, 512, 300, { size: 13, align: 'center', color: '#e8e2d0' });
-    UI.pixText(ctx, `难度: ${st.diff.toUpperCase()}`, 512, 326, { size: 11, align: 'center', color: '#9aa3bd' });
+    UI.pixText(ctx, `难度: ${st.diff.toUpperCase()} · 全 ${this.LEVELS.length} 幕 · 续关: ${st.revives}`,
+      512, 326, { size: 11, align: 'center', color: '#9aa3bd' });
+    if (st.revives === 0) UI.pixText(ctx, 'NO CONTINUE — 一命通关！', 512, 354, { size: 12, align: 'center', color: '#ffb648' });
     if (G.tick % 40 < 26) UI.pixText(ctx, 'J / 点击 · 返回标题', 512, 420, { size: 12, align: 'center', color: '#ffe27a' });
   },
 };

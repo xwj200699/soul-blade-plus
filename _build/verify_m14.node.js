@@ -244,6 +244,25 @@ const ok = m => console.log("  ok  " + m);
     lines += a.intro + a.boss + a.outro + a.waves.reduce((s, w) => s + w.talk, 0);
   }
   ok(`${acts.length} acts · ${lines} dialogue lines (${waveTalks} of them mid-level) · bosses ${acts.map(a => a.bossId).join("/")}`);
+  // 关卡越来越"满": 每幕 >=3 波(终幕 >=4), 杂兵总数够多, 波内人数向后递增
+  const totalMooks = acts.reduce((s, a) => s + a.waves.reduce((w, x) => w + x.n, 0), 0);
+  acts.forEach((a, i) => {
+    const need = i === acts.length - 1 ? 4 : 3;
+    if (a.waves.length < need) throw new Error(`${a.sub}: only ${a.waves.length} waves, expected >= ${need}`);
+    if (a.waves[a.waves.length - 1].n < 3) throw new Error(`${a.sub}: last wave too small (${a.waves[a.waves.length - 1].n})`);
+  });
+  if (totalMooks < 45) throw new Error("too few total mooks: " + totalMooks);
+  if (lines < 55) throw new Error("not enough story: " + lines + " lines");
+  ok(`${totalMooks} mooks across ${acts.reduce((s, a) => s + a.waves.length, 0)} waves (final act ${acts[acts.length - 1].waves.length} waves)`);
+  // 越来越难: 同一杂兵在靠后幕血更厚(_mkEnemy 的 hpRamp)
+  const ramp = JSON.parse(G_(`(() => {
+    Quest.start('mack', 'normal');
+    Quest.st.level = 0; const a = Quest._mkEnemy('kenji', 40, 500, 0).maxHp;
+    Quest.st.level = 4; const b = Quest._mkEnemy('kenji', 40, 500, 0).maxHp;
+    Quest.exit(); return JSON.stringify({ a, b });
+  })()`));
+  if (!(ramp.b > ramp.a)) throw new Error("no per-act difficulty ramp: " + JSON.stringify(ramp));
+  ok(`per-act ramp: same mook ${ramp.a}hp in act I -> ${ramp.b}hp in final act`);
   // 第一幕第一波必须没有前置对白 —— 进关即开打(也让 M1.3 smoke 的 walk→fight 断言成立)
   if (acts[0].waves[0].talk !== 0) throw new Error("act I wave 1 must not gate on dialogue");
   ok("act I wave 1 still starts without a dialogue gate");

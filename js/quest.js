@@ -20,8 +20,8 @@ const Quest = {
        lives       续关次数(残机): 倒下后原地复活, 不用重打整关
        drop/heal   杂兵掉补给概率 / 清波与过关的回血比例 */
   DIFF: {
-    easy:   { mook: 0.7,  boss: 0.62, ai: 'easy',   bossAi: 'easy',   dmg: 0.55, bossDmg: 0.65,
-              attackers: 1, rest: 46, lives: 4, drop: 0.6,  waveHeal: 0.2,  heal: 0.75 },
+    easy:   { mook: 0.62, boss: 0.6,  ai: 'easy',   bossAi: 'easy',   dmg: 0.48, bossDmg: 0.6,
+              attackers: 1, rest: 50, lives: 6, drop: 0.65, waveHeal: 0.24, heal: 0.8 },
     normal: { mook: 0.85, boss: 0.78, ai: 'easy',   bossAi: 'normal', dmg: 0.7,  bossDmg: 0.8,
               attackers: 2, rest: 30, lives: 2, drop: 0.45, waveHeal: 0.14, heal: 0.6 },
     hard:   { mook: 1.15, boss: 1.05, ai: 'normal', bossAi: 'hard',   dmg: 0.95, bossDmg: 1.0,
@@ -40,88 +40,111 @@ const Quest = {
      免得刚进关就被一段字挡住(也让 headless smoke 的 walk→fight 断言继续成立)。 */
   LEVELS: [
     {
-      name: '第一幕 · 校门与中心广场', sub: 'ACT I', stageSel: 0, worldW: 2400,
+      name: '第一幕 · 校门与中心广场', sub: 'ACT I', stageSel: 0, worldW: 2600,
       intro: [['广播', '警报——外部人员强行破门，全体师生就近避险！'],
               ['你', '雷雨夜，变电所警报全红。校门这一段，交给我。'],
               ['同学', '他们一进来就砸配电箱……说要把全校的电「接管」！'],
-              ['你', '那就先把他们从校门赶回去。']],
+              ['同学', '保安拦了一次，被推倒在传达室门口了！'],
+              ['你', '那就先把他们从校门赶回去。这里我顶着。']],
       bossTalk: [['破门先锋', '这所学校的电，从今晚起归我们调度。'],
+                 ['破门先锋', '识相的就让开，我懒得对学生动手。'],
                  ['你', '调度权在总闸上。你连校门都还没过。']],
       outro: [['你', '他倒下前咬着牙：「机房……才是我们要的东西。」'],
               ['你', '机房。全校的数据和备用电源都在那儿。']],
       waves: [
-        { at: 760, mooks: [['kenji', 38], ['kenji', 38]] },
-        { at: 1560, talk: [['你', '第二波？看来他们不只是来砸箱子的。']],
-          mooks: [['kenji', 40], ['ayame', 42], ['kenji', 40]] },
+        { at: 680, mooks: [['kenji', 34], ['kenji', 34]] },
+        { at: 1300, talk: [['你', '第二波？看来他们不只是来砸箱子的。']],
+          mooks: [['kenji', 36], ['ayame', 38], ['kenji', 36]] },
+        { at: 1920, talk: [['同学', '广场喷泉那边又冲上来一群！'], ['你', '都让他们上。挡在这儿，一个都别想过去。']],
+          mooks: [['kenji', 36], ['ayame', 40], ['kenji', 36]] },
       ],
-      boss: { id: 'kenji', hp: 124, name: '破门先锋' },
+      boss: { id: 'kenji', hp: 120, name: '破门先锋' },
     },
     {
-      name: '第二幕 · 实训楼机房', sub: 'ACT II', stageSel: 1, worldW: 2400,
+      name: '第二幕 · 实训楼机房', sub: 'ACT II', stageSel: 1, worldW: 2600,
       intro: [['你', '机房的灯全灭了，只剩机柜指示灯在雨声里一格一格闪。'],
               ['值班老师', '备用电源被人切了！再断十分钟，这学期的实训数据全没。'],
-              ['你', '十分钟。够了。']],
+              ['值班老师', '他们分了两拨，一拨拆线，一拨守在走廊尽头。'],
+              ['你', '十分钟。够了——先清走廊。']],
       bossTalk: [['影袭·夜刃', '再往前一步，全校的数据跟你一起断电。'],
+                 ['影袭·夜刃', '我在暗处，你在灯下。你看得见我出手吗？'],
                  ['你', '那就别让我往前——你拦得住吗？']],
       outro: [['你', '她最后只说了半句：「上面……还有人在等合闸。」'],
               ['你', '上面。风雨连廊，然后是运动场。']],
       waves: [
-        { at: 740, mooks: [['ayame', 40], ['ayame', 40]] },
-        { at: 1540, talk: [['你', '他们在往机柜后面拉线——想把机房的电引到别处去。']],
-          mooks: [['ayame', 40], ['doctor', 44], ['houyi', 44]] },
+        { at: 680, mooks: [['ayame', 36], ['doctor', 40]] },
+        { at: 1300, talk: [['你', '他们在往机柜后面拉线——想把机房的电引到别处去。']],
+          mooks: [['ayame', 38], ['doctor', 42], ['houyi', 42]] },
+        { at: 1920, talk: [['值班老师', '机柜区被占了！三个人守着主交换机！'], ['你', '交换机我来抢。你带同学撤到安全出口。']],
+          mooks: [['ayame', 38], ['houyi', 42], ['doctor', 42]] },
       ],
-      boss: { id: 'ayame', hp: 132, name: '影袭·夜刃' },
+      boss: { id: 'ayame', hp: 128, name: '影袭·夜刃' },
     },
     {
-      name: '第三幕 · 风雨连廊与运动场', sub: 'ACT III', stageSel: 2, worldW: 2500,
+      name: '第三幕 · 风雨连廊与运动场', sub: 'ACT III', stageSel: 2, worldW: 2650,
       intro: [['你', '连廊的雨横着打进来，灯管一路炸到运动场。'],
               ['保安', '运动场的配电柜被围了！那是主楼的上一级线路！'],
-              ['你', '上一级——那就是通往总闸的路。']],
+              ['保安', '他们人比刚才多一倍，看装束是外头调来的老手。'],
+              ['你', '上一级——那就是通往总闸的路。人多，正好一起收拾。']],
       bossTalk: [['电缆窃贼·舞影', '这条线，我先接走一半。你不会介意吧？'],
+                 ['电缆窃贼·舞影', '看我扇子，别看线——这可是舞台。'],
                  ['你', '我很介意。放下钳子。']],
       outro: [['你', '配电柜锁回去了。灯管一节一节，又亮回一段。'],
-              ['你', '再往下——地下变电所。']],
+              ['你', '再往下——地下变电所。水声，越来越大了。']],
       waves: [
-        { at: 720, mooks: [['diaochan', 42], ['kenji', 40]] },
-        { at: 1520, talk: [['你', '雨越大他们越往柜子上爬——上级线路不能让他们摸到。']],
-          mooks: [['diaochan', 42], ['angela', 44], ['kenji', 40]] },
+        { at: 680, mooks: [['diaochan', 38], ['kenji', 38]] },
+        { at: 1280, talk: [['你', '雨越大他们越往柜子上爬——上级线路不能让他们摸到。']],
+          mooks: [['diaochan', 40], ['angela', 42], ['kenji', 38]] },
+        { at: 1900, talk: [['保安', '看台那边又翻进来四个！'], ['你', '连廊窄，正好卡住他们。来多少挡多少。']],
+          mooks: [['diaochan', 40], ['angela', 42], ['kenji', 38], ['ayame', 40]] },
       ],
-      boss: { id: 'diaochan', hp: 140, name: '电缆窃贼·舞影' },
+      boss: { id: 'diaochan', hp: 138, name: '电缆窃贼·舞影' },
     },
+
     {
-      name: '第四幕 · 地下变电所', sub: 'ACT IV', stageSel: 1, worldW: 2500,
+      name: '第四幕 · 地下变电所', sub: 'ACT IV', stageSel: 1, worldW: 2650,
       intro: [['你', '地下室的水已经到脚踝，母排上还挂着人为搭的短接线。'],
               ['电工班长', '别碰红色那根！他们把互锁全拆了，现在合闸就是短路。'],
-              ['你', '那就先把互锁装回去。']],
+              ['电工班长', '这帮人是冲着主变来的——一层比一层难缠，你小心。'],
+              ['你', '互锁我来装回去。掩护交给我，你盯着水位。']],
       bossTalk: [['配电室监工·铁闸', '这道门后面是全校的命。你带钥匙了吗？'],
+                 ['配电室监工·铁闸', '我这身盾，专门用来磨人。你有的是力气吗？'],
                  ['你', '不用钥匙。我拆门。']],
       outro: [['你', '互锁复位，水泵起转，水位开始往下走。'],
-              ['你', '只剩最后一段——主楼穹顶。']],
+              ['你', '只剩最后一段——主楼穹顶。灯还差最后一口气。']],
       waves: [
-        { at: 720, mooks: [['tank', 46], ['doctor', 42]] },
-        { at: 1520, talk: [['你', '他们在守闸门——越靠近总闸，人越多。']],
-          mooks: [['tank', 46], ['houyi', 44], ['doctor', 42]] },
+        { at: 680, mooks: [['tank', 42], ['doctor', 40]] },
+        { at: 1280, talk: [['你', '水里打，脚下滑，他们反而更嚣张。']],
+          mooks: [['tank', 44], ['houyi', 42], ['doctor', 40]] },
+        { at: 1900, talk: [['电工班长', '闸门前堆了四个！全是硬骨头！'], ['你', '越靠近总闸人越多——说明我没走错。全上吧。']],
+          mooks: [['tank', 44], ['angela', 42], ['houyi', 42], ['doctor', 40]] },
       ],
-      boss: { id: 'tank', hp: 150, name: '配电室监工·铁闸' },
+      boss: { id: 'tank', hp: 148, name: '配电室监工·铁闸' },
     },
     {
-      name: '终幕 · 主楼穹顶变电中枢', sub: 'FINAL ACT', stageSel: 3, worldW: 2750,
+      name: '终幕 · 主楼穹顶变电中枢', sub: 'FINAL ACT', stageSel: 3, worldW: 3200,
       intro: [['你', '穹顶之下，全校的总闸被人握在手里。'],
               ['？？？', '想合闸？先从我这一棍下过去！'],
+              ['你', '一路打上来，就是为了这最后一只手柄。'],
               ['你', '一夜的黑，到这里为止。']],
       bossTalk: [['断电者·首谋', '这一夜的黑暗，我说了才算！'],
-                 ['你', '你说了不算。开关在我手上。']],
+                 ['断电者·首谋', '我把所有人都压在这层了——你过不去。'],
+                 ['你', '你说了不算。开关，在我手上。']],
       outro: [['你', '总闸合上。灯，一层一层亮回来了。'],
+              ['你', '雨还在下，但整座楼都醒了过来。'],
               ['广播', '各位师生，全校供电已恢复。今晚的自习，照常。']],
       waves: [
-        { at: 700, mooks: [['wukong', 44], ['houyi', 42]] },
-        { at: 1400, talk: [['你', '他把人全押在这儿了——总闸就在他背后。']],
-          mooks: [['angela', 42], ['houyi', 42], ['wukong', 44]] },
-        { at: 2000, talk: [['你', '最后一圈。合闸的手，只需要腾出一只。']],
-          mooks: [['diaochan', 42], ['tank', 46]] },
+        { at: 700, mooks: [['wukong', 40], ['houyi', 40]] },
+        { at: 1240, talk: [['你', '他把人全押在这儿了——总闸就在他背后。']],
+          mooks: [['angela', 40], ['houyi', 40], ['wukong', 42]] },
+        { at: 1860, talk: [['断电者·首谋', '再上一批！别让他碰到总闸！']],
+          mooks: [['diaochan', 40], ['tank', 44], ['kenji', 38]] },
+        { at: 2480, talk: [['你', '最后一圈。合闸的手，只需要腾出一只。']],
+          mooks: [['wukong', 42], ['diaochan', 40], ['tank', 44], ['ayame', 40]] },
       ],
       boss: { id: 'wukong', hp: 168, name: '断电者·首谋' },
     },
+
 
   ],
 
@@ -205,10 +228,15 @@ const Quest = {
   _mkEnemy(id, hp, x, tintIdx) {
     const D = this.DIFF[this.st.diff];
     const f = new Fighter(id, x, x > this.st.player.x ? -1 : 1, G);
-    f.maxHp = f.hp = Math.round(hp * D.mook);
+    // 关卡递进(越来越难): 每往后一幕, 杂兵血量与出伤各加一档 ——
+    // 第一幕基准, 终幕 ≈ +32% 血 / +16% 伤, 越接近总闸的敌人越硬。
+    const lvl = this.st.level;
+    const hpRamp = 1 + lvl * 0.08;
+    const dmgRamp = 1 + lvl * 0.04;
+    f.maxHp = f.hp = Math.round(hp * D.mook * hpRamp);
     f.dispHp = f.hp;
     f.isMook = true;
-    f.dmgDealt = D.dmg;            // 杂兵出伤系数(fighter.receiveHit 读取)
+    f.dmgDealt = D.dmg * dmgRamp; // 杂兵出伤系数(fighter.receiveHit 读取)
     f.gainMeter = () => {};        // 杂兵不攒气 —— 小兵放超必是"打不过"的隐形元凶
     f.superReady = () => false;
     f.tint = this.MOOK_TINTS[tintIdx % this.MOOK_TINTS.length];

@@ -528,7 +528,10 @@ class Fighter {
       AudioSys.sfx('getup');
     }
   }
-
+    runCineArrowRain(opp, s) {
+    // 占位，避免报错；后续可以补充具体箭雨演出逻辑
+    console.warn("runCineArrowRain 尚未实现");
+  }
   getupLogic() {
     this.stateT--;
     if (this.stateT <= 0) this.state = 'idle';
@@ -550,7 +553,7 @@ class Fighter {
     if (s.style === 'arrowrain') return this.runCineArrowRain(opp, s);  // M1 后羿·射日
     if (s.style === 'flame') return this.runCineFlame(opp, s);          // M1 安琪拉·熾熱光輝
     if (s.style === 'fandance') return this.runCineFandance(opp, s);    // M1.3 貂蝉·花舞乱影
-
+  
     if (s.t % s.interval === 0 && s.done < s.hits) {
       s.done++;
       const dmg = Math.max(1, Math.round(s.dmgPer * s.scale));

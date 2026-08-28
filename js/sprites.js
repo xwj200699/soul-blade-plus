@@ -1426,6 +1426,21 @@ class Projectile {
       ctx.fillRect(-1, -5, 2, 10);
       ctx.fillStyle = '#eaf8ff';
       ctx.fillRect(-2, -2, 4, 4);
+    } else if (this.kind === 'plum') {
+      // 小艳·梅吹雪: 一朵旋转的五瓣红梅 + 拖尾落瓣, 慢速自旋(读作"飞花")
+      ctx.rotate(this.t * 0.32 * this.dir);
+      ctx.fillStyle = 'rgba(226,58,110,0.24)';
+      ctx.fillRect(-14, -14, 28, 28);                // 花光晕
+      for (let k = 0; k < 5; k++) {                  // 五瓣
+        ctx.rotate(Math.PI * 2 / 5);
+        ctx.fillStyle = '#e23a6e';
+        ctx.fillRect(-3, -12, 6, 9);
+        ctx.fillRect(-5, -10, 10, 5);
+        ctx.fillStyle = '#ffd6e0';                   // 瓣尖高光
+        ctx.fillRect(-2, -12, 4, 2);
+      }
+      ctx.fillStyle = '#ffcf87';                     // 花蕊(晓金)
+      ctx.fillRect(-2, -2, 4, 4);
     } else {
       ctx.fillStyle = 'rgba(125,91,255,0.25)';
       ctx.fillRect(-14, -14, 28, 28);

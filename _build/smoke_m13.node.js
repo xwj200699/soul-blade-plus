@@ -98,13 +98,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   for (let i = 0; i < 200 && G_("G.screen") === "boot"; i++) await sleep(10);
   console.log("boot ->", G_("G.screen"));
 
-  /* 1) sizes / crouch box (九人: M1.3 七人 + 校园电力风 doctor/tank) */
-  if (G_("ROSTER.length") !== 9 || G_("ROSTER[6]") !== "diaochan" ||
-      G_("ROSTER[7]") !== "doctor" || G_("ROSTER[8]") !== "tank") throw new Error("roster != 9 (diaochan/doctor/tank)");
-  const visH = { mack: 150, kenji: 145, ayame: 150, wukong: Math.round(83 * G_("DATA.wukong.scale")), houyi: Math.round(79 * G_("DATA.houyi.scale")), angela: Math.round(77 * G_("DATA.angela.scale")), diaochan: Math.round(80 * G_("DATA.diaochan.scale")), doctor: Math.round(84 * G_("DATA.doctor.scale")), tank: Math.round(81 * G_("DATA.tank.scale")) };
+  /* 1) sizes / crouch box (十人: 七人 + 校园电力风 doctor/tank + 新英雄 xiaoyan) */
+  if (G_("ROSTER.length") !== 10 || G_("ROSTER[6]") !== "diaochan" ||
+      G_("ROSTER[7]") !== "doctor" || G_("ROSTER[8]") !== "tank" || G_("ROSTER[9]") !== "xiaoyan") throw new Error("roster != 10 (diaochan/doctor/tank/xiaoyan)");
+  const visH = { mack: 150, kenji: 145, ayame: 150, wukong: Math.round(83 * G_("DATA.wukong.scale")), houyi: Math.round(79 * G_("DATA.houyi.scale")), angela: Math.round(77 * G_("DATA.angela.scale")), diaochan: Math.round(80 * G_("DATA.diaochan.scale")), doctor: Math.round(84 * G_("DATA.doctor.scale")), tank: Math.round(81 * G_("DATA.tank.scale")), xiaoyan: 150 };
   const hs = Object.values(visH);
   const spread = (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs);
-  console.log("display heights (9) spread:", (spread * 100).toFixed(1) + "%");
+  console.log("display heights (10) spread:", (spread * 100).toFixed(1) + "%");
   if (spread > 0.10) throw new Error("size spread > 10%");
   G_("startMatch('wukong', 'mack', 'normal', false, true, false, true)");
   G_("G.phase = 'fight'");

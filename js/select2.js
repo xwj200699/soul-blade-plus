@@ -27,7 +27,7 @@
    ===================================================================== */
 (() => {
   UI.ua = UI.ua || {};
-  for (const cid of ['ayame', 'wukong', 'houyi', 'angela', 'diaochan', 'doctor', 'tank']) {
+  for (const cid of ['ayame', 'wukong', 'houyi', 'angela', 'diaochan', 'doctor', 'tank', 'xiaoyan']) {
     for (const kind of ['sel', 'hud']) {
       const img = new Image();
       img.onload = () => { UI.ua[kind + '_' + cid] = img; };

@@ -594,6 +594,144 @@ const _cSeq = (f) => ({ w: [{ a: 'crouch', f: 0 }], i: { a: 'crouch', f }, r: [{
 /* 挑空技帧路径: 从蹲姿弹起, 判定窗切回攻击表的月牙帧 imp */
 const _upSeq = (imp, rec) => ({ w: [{ a: 'crouch', f: 0 }], i: imp, r: [rec] });
 
+/* ================================================================================
+   新英雄 小艳 · 梅晓艳 (M1.4 追加, 玩家点名新增)
+   名字拆解 —— 梅: 红梅 / 晓: 破晓的金 / 艳: 明艳的舞。据此定形:
+     身份 = 剑舞者(BLOSSOM), 以红梅刀光起舞, 快斩+浮空, 招牌远程「梅吹雪」撒飞花,
+     超必「満開・紅梅乱舞」走花瓣舞杀分镜(与貂蝉同骨架, 红梅/晓金配色)。
+   素材复用 Huntress 体(与欣韵同骨架, 换红梅调色) —— 全游戏本就是"换皮"路线,
+   通过 theme/刀光重染/飞花 fx 与欣韵(青·长枪)彻底区分手感与观感。
+   fw=150, scale 3.4, 无烘焙蹲帧 —— 蹲攻/挑空沿用 attack3/attack1 的低位与升位身法。
+   ================================================================================ */
+DATA.xiaoyan = {
+  id: 'xiaoyan',
+  name: 'XIAOYAN', cn: '小艳', title: '紅梅の舞姫', type: 'BLOSSOM',
+  theme: '#e23a6e', theme2: '#ffcf87',   // 红梅 + 破晓金
+  dir: 'assets/img/huntress', fw: 150, native: 1, scale: 3.4,
+  anchor: { x: 76, y: 96 },
+  body: { w: 30, h: 150, crouchH: 100 },
+  dash: { from: 3, to: 14, vx: 9 },
+  walk: 3.9, jumpVy: -15.8, dashVx: 8.2, backdashVx: 7.0,
+  stats: { pow: 3, spd: 5, rng: 4 },
+  quoteWin: '梅开时节，正好落幕。', quoteLose: '这一枝……还没开够呢。',
+  portrait: { x: 56, y: 44, w: 52, h: 52 },
+  anims: {
+    idle:    { file: 'Idle_kunoichi.png',    frames: 8, hold: 7,  loop: true },
+    crouch:  { file: 'Idle_kunoichi.png',    frames: 8, hold: 8,  loop: true },  // 无蹲帧: 占位
+    crouchin:{ file: 'Idle_kunoichi.png',    frames: 1, hold: 5,  loop: true },
+    run:     { file: 'Run_kunoichi.png',     frames: 8, hold: 6,  loop: true },
+    jump:    { file: 'Jump_kunoichi.png',    frames: 2, hold: 10, loop: true },
+    fall:    { file: 'Fall_kunoichi.png',    frames: 2, hold: 10, loop: true },
+    attack1: { file: 'Attack1_kunoichi.png', frames: 5, hold: 5,  loop: false, smearFrames: [3] }, // 过头弧斩(白月牙 f3)
+    attack2: { file: 'Attack2_kunoichi.png', frames: 5, hold: 6,  loop: false, smearFrames: [3] }, // 过头劈斩(白月牙 f3)
+    attack3: { file: 'Attack3_kunoichi.png', frames: 7, hold: 5,  loop: false },                    // 突刺身(无月牙)
+    hit:     { file: 'Take hit_kunoichi.png',frames: 3, hold: 5,  loop: false },
+    death:   { file: 'Death_kunoichi.png',   frames: 8, hold: 7,  loop: false },
+  },
+  moves: {
+    light: { // 梅斬: 过头一记红梅弧斩, 快
+      kind: 'light', anim: 'attack1', total: 21, startup: 5, active: 5, impact: 3,
+      seq: { w: [0, 1, 2], i: 3, r: [4] },
+      smear: { phases: [{ f: 3, t: 4 }], decay: 2, edge: '#e23a6e', core: '#ffe3ec' },
+      dmg: 6, chip: 0, guardDmg: 10, box: { x1: 10, x2: 168, y1: -176, y2: -34 },
+      knock: 4.5, hitstun: 18, blockstun: 11, hitstop: 5, shake: 2,
+      meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+    },
+    light2: { // 返梅(J·J 第二段): 收刀反手再劈
+      kind: 'light', anim: 'attack2', total: 20, startup: 4, active: 5, impact: 3,
+      seq: { w: [1, 2], i: 3, r: [4] },
+      smear: { phases: [{ f: 3, t: 4 }], decay: 2, edge: '#c92a5a', core: '#ffe3ec' },
+      dmg: 7, chip: 0, guardDmg: 10, box: { x1: 10, x2: 168, y1: -172, y2: -30 },
+      knock: 5, hitstun: 18, blockstun: 11, hitstop: 5, shake: 2,
+      meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+    },
+    heavy: { // 紅梅斬: 大弧红梅斩(K·K 第一段)
+      kind: 'heavy', name: '紅梅斬', anim: 'attack2', total: 30, startup: 10, active: 6, impact: 3,
+      seq: { w: [0, 1, 2], i: 3, r: [4] },
+      smear: { phases: [{ f: 3, t: 5 }], decay: 3, rim: 4, echo: { t: 3, dy: 6 }, edge: '#e23a6e', core: '#ffe3ec' },
+      dmg: 11, chip: 2, guardDmg: 24, box: { x1: 10, x2: 172, y1: -182, y2: -30 },
+      knock: 8, hitstun: 26, blockstun: 15, hitstop: 12, shake: 5,
+      meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
+    },
+    heavy2: { // 落梅(K·K 终结): 前踏一记斜劈, 把人斩落击倒
+      kind: 'heavy', name: '落梅', anim: 'attack1', total: 30, startup: 9, active: 6, impact: 3,
+      seq: { w: [1, 2], i: 3, r: [4] }, dash: { from: 2, to: 10, vx: 6.4 },
+      smear: { phases: [{ f: 3, t: 5 }], decay: 2, rim: 4, echo: { t: 4, dx: 8 }, edge: '#ff7aa0', core: '#fff0f4' },
+      dmg: 11, chip: 2, guardDmg: 24, box: { x1: 10, x2: 176, y1: -186, y2: -28 },
+      knock: 9, hitstun: 28, blockstun: 15, hitstop: 13, shake: 6, launch: -10,
+      meterHit: 13, sfx: 'whooshH', hitSfx: 'hitH',
+    },
+    clight: { // 掃梅(蹲J): 沉身贴地一斩(借突刺身低位)
+      kind: 'light', name: '掃梅', anim: 'attack3', total: 20, startup: 5, active: 5, impact: 4,
+      seq: { w: [0, 1], i: 4, r: [5, 6] },
+      fx: { thrust: true, x: 56, y: -46, color: '#ffe3ec', color2: '#e23a6e' },
+      dmg: 4, chip: 0, guardDmg: 9, box: { x1: 16, x2: 190, y1: -66, y2: -6 },
+      knock: 3.5, hitstun: 16, blockstun: 9, hitstop: 4, shake: 2,
+      meterHit: 7, sfx: 'whooshL', hitSfx: 'hitL',
+    },
+    clight2: { // 掃梅·返(蹲J·J)
+      kind: 'light', anim: 'attack3', total: 18, startup: 4, active: 4, impact: 4,
+      seq: { w: [2], i: 4, r: [5, 6] },
+      fx: { thrust: true, x: 56, y: -58, color: '#ffd6e0', color2: '#c92a5a' },
+      dmg: 3, chip: 0, guardDmg: 9, box: { x1: 16, x2: 190, y1: -78, y2: -16 },
+      knock: 4, hitstun: 16, blockstun: 9, hitstop: 4, shake: 2,
+      meterHit: 7, sfx: 'whooshL', hitSfx: 'hitL',
+    },
+    cheavy: { // 昇梅(蹲K): 拔身而起的挑空斩(独立技), 浮空接超必
+      kind: 'heavy', name: '昇梅', noChain: true, anim: 'attack1', total: 31,
+      startup: 9, active: 6, impact: 3, seq: { w: [0], i: 3, r: [4] }, hop: -7.5,
+      smear: { phases: [{ f: 3, t: 5 }], decay: 2, rim: 4, attach: true, edge: '#e23a6e', core: '#ffe3ec' },
+      dmg: 10, chip: 2, guardDmg: 22, box: { x1: 4, x2: 168, y1: -186, y2: -14 },
+      knock: 1.5, hitstun: 25, blockstun: 13, hitstop: 11, shake: 5, kd: true, launch: -16,
+      meterHit: 11, sfx: 'whooshH', hitSfx: 'hitH',
+    },
+    air: { // 空梅斬
+      kind: 'light', anim: 'attack1', total: 22, startup: 5, active: 7, impact: 3, air: true,
+      smear: { phases: [{ f: 3, t: 4 }], decay: 2, edge: '#ff7aa0', core: '#fff0f4' },
+      dmg: 6, chip: 0, guardDmg: 10, box: { x1: 6, x2: 150, y1: -168, y2: -26 },
+      knock: 4, hitstun: 19, blockstun: 11, hitstop: 5, shake: 2,
+      meterHit: 8, sfx: 'whooshL', hitSfx: 'hitL',
+    },
+    dive: { // 墜梅: 空中 K 斜下俯冲斩
+      kind: 'heavy', name: '墜梅', anim: 'attack2', air: true, dive: true, impact: 3,
+      startup: 7, diveSpeed: 15.5, diveDrift: 5, recovery: 22, slamActive: 8,
+      smear: { phases: [{ f: 3, t: 5 }], decay: 2, echo: { t: 3, dy: 7 }, edge: '#c92a5a', core: '#ffe3ec' },
+      dmg: 10, chip: 3, guardDmg: 28, box: { x1: 0, x2: 168, y1: -98, y2: 10 },
+      knock: 6.5, hitstun: 26, blockstun: 15, hitstop: 12, shake: 6, kd: true,
+      meterHit: 12, sfx: 'whooshH', hitSfx: 'hitH',
+    },
+    dashslash: { // 疾梅斬(冲刺J): 借冲刺一记贯穿红梅斩, 速度型招牌
+      kind: 'light', name: '疾梅斬', anim: 'attack1', total: 21, startup: 4, active: 6, impact: 3,
+      seq: { w: [0], i: 3, r: [4] }, dash: { from: 0, to: 8, vx: 11.5 },
+      smear: { phases: [{ f: 3, t: 5 }], decay: 2, echo: { t: 3, dx: 10 }, edge: '#e23a6e', core: '#ffe3ec' },
+      dmg: 8, chip: 1, guardDmg: 14, box: { x1: 8, x2: 170, y1: -160, y2: -34 },
+      knock: 7, hitstun: 22, blockstun: 10, hitstop: 7, shake: 3,
+      meterHit: 10, sfx: 'whooshH', hitSfx: 'hitH',
+    },
+    special: { // 梅吹雪: 撒出一朵旋转红梅飞花(中速弹, 招牌远程)
+      kind: 'special', name: '梅吹雪', anim: 'attack1', total: 38, startup: 13, active: 1, impact: 3,
+      cooldown: 92,
+      projectile: { kind: 'plum', trail: 'rgba(226,58,110,0.7)', spread: [0], speed: 8.0,
+                    dmg: 10, chip: 3, guardDmg: 18, y: -92,
+                    hitstun: 24, blockstun: 13, knock: 4, hitstop: 6, meterHit: 13 },
+      dmg: 0, meterHit: 5, sfx: 'projectile', hitSfx: 'hitL',
+      flair: { x: 54, y: -92, ring: 16, spark: 11, sparkPow: 6, petals: 18, flash: 0.14, shake: 4,
+               text: '梅吹雪!', color: '#ff7aa0', color2: '#e23a6e' },
+    },
+    super: { // 満開・紅梅乱舞 (花瓣舞杀分镜, 红梅晓金配色)
+      kind: 'super', name: '満開・紅梅乱舞', anim: 'attack1', total: 52,
+      startup: 13, active: 10, impact: 3, finisher: 'A',
+      dmg: 4, chip: 3, guardDmg: 24, box: { x1: 8, x2: 176, y1: -184, y2: -36 },
+      knock: 2, hitstun: 20, blockstun: 16, hitstop: 5, shake: 4,
+      meterHit: 0, sfx: 'whooshH', hitSfx: 'hitH',
+      cine: { hits: 5, interval: 7, dmgPer: 6, final: 14, style: 'fandance' },
+      flair: { x: 34, y: -102, converge: 16, ring: 22, spark: 18, sparkPow: 8, petals: 36, rise: 5,
+               flash: 0.3, shake: 8, color: '#ff7aa0', color2: '#e23a6e' },
+    },
+  },
+};
+
+
 /* ---------- 毅 wukong: 金箍棒全套 (POWER · 长棍压制) ---------- */
 Object.assign(DATA.wukong.moves, {
   heavy2: { // 翻天棍(K·K 终结): 蹬地前踏一记横扫, 把人抽飞
@@ -983,7 +1121,7 @@ for (const [cid, tbl] of Object.entries({
 
   // 远程必杀: 弹体放大系数(判定+画面同步)。airspecial 一并放大, 弹幕更有存在感
   const PROJ_SCALE = {
-    kenji: 1.5, houyi: 1.5, angela: 1.7, diaochan: 1.6, doctor: 1.5,
+    kenji: 1.5, houyi: 1.5, angela: 1.7, diaochan: 1.6, doctor: 1.5, xiaoyan: 1.6,
   };
   for (const [cid, s] of Object.entries(PROJ_SCALE)) {
     for (const mk of ['special', 'airspecial']) {
@@ -1042,4 +1180,4 @@ for (const [cid, tbl] of Object.entries({
 })();
 
 /* ---------- roster list (select screen + AI use this) ---------- */
-const ROSTER = ['mack', 'kenji', 'ayame', 'wukong', 'houyi', 'angela', 'diaochan', 'doctor', 'tank'];
+const ROSTER = ['mack', 'kenji', 'ayame', 'wukong', 'houyi', 'angela', 'diaochan', 'doctor', 'tank', 'xiaoyan'];

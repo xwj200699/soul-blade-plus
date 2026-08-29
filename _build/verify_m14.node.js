@@ -506,6 +506,123 @@ const ok = m => console.log("  ok  " + m);
   if (!/superCast/.test(fSrc) || !/skillCast/.test(fSrc)) throw new Error("startMove not wired to cast sfx");
   ok("receiveHit plays a tiered hurt sfx; special/super play a cast sfx");
 
+  /* ---------- 5.5) 手长 + 机动性分档 ---------- */
+  console.log("[5.5] reach & mobility tiers");
+  const reach = JSON.parse(G_(`(() => {
+    const out = {};
+    for (const cid of Object.keys(DATA)) {
+      const mv = DATA[cid].moves;
+      const r = k => (mv[k] && mv[k].box) ? mv[k].box.x2 : null;
+      out[cid] = { j: r('light'), k: r('heavy'), cj: r('clight'), ck: r('cheavy') };
+    }
+    return JSON.stringify(out);
+  })()`));
+  // 六位 192px 骨架角色的近战手长必须够得着(不再"贴着人打空")
+  for (const cid of ["wukong", "angela", "diaochan", "tank", "xiaoyan", "doctor"]) {
+    const r = reach[cid];
+    const melee = [r.j, r.k, r.cj, r.ck].filter(v => v !== null);
+    const worst = Math.min(...melee);
+    if (worst < 130) throw new Error(`${cid}: melee reach still stubby (min ${worst}px)`);
+  }
+  ok(`melee reach floor met for the 192px roster (min ${Math.min(...["wukong", "angela", "diaochan", "tank", "xiaoyan", "doctor"].map(c => Math.min(...[reach[c].j, reach[c].k, reach[c].cj, reach[c].ck].filter(v => v !== null))))}px)`);
+
+  const mob = JSON.parse(G_(`JSON.stringify(ROSTER.map(cid => {
+    const c = DATA[cid];
+    return { cid, cn: c.cn, spd: c.stats.spd, walk: c.walk, jump: c.jumpVy,
+             dash: c.dashVx, back: c.backdashVx };
+  }))`));
+  const FLOOR = { 5: [4.3, -16.5, 9.0], 4: [3.8, -16.0, 8.4], 3: [3.3, -15.8, 7.8], 2: [3.0, -15.4, 7.2] };
+  for (const m of mob) {
+    const f = FLOOR[m.spd];
+    if (!f) throw new Error(`${m.cid}: unexpected spd ${m.spd}`);
+    if (m.walk < f[0] - 1e-9) throw new Error(`${m.cn}: walk ${m.walk} below spd-${m.spd} floor ${f[0]}`);
+    if (m.jump > f[1] + 1e-9) throw new Error(`${m.cn}: jump ${m.jump} weaker than spd-${m.spd} floor ${f[1]}`);
+    if (m.dash < f[2] - 1e-9) throw new Error(`${m.cn}: dash ${m.dash} below spd-${m.spd} floor ${f[2]}`);
+  }
+  // 属性条要可信: 速度值更高的人, 走速不能比速度值低的人慢
+  const bySpd = mob.slice().sort((a, b) => a.spd - b.spd);
+  for (let i = 1; i < bySpd.length; i++) {
+    if (bySpd[i].spd > bySpd[i - 1].spd && bySpd[i].walk < bySpd[i - 1].walk) {
+      throw new Error(`stats.spd lies: ${bySpd[i].cn}(spd${bySpd[i].spd}) walks ${bySpd[i].walk} < ${bySpd[i - 1].cn}(spd${bySpd[i - 1].spd}) ${bySpd[i - 1].walk}`);
+    }
+  }
+  ok(`mobility matches stats.spd for all ${mob.length} fighters (walk ${Math.min(...mob.map(m => m.walk))}-${Math.max(...mob.map(m => m.walk))}, dash ${Math.min(...mob.map(m => m.dash))}-${Math.max(...mob.map(m => m.dash))})`);
+
+  // 引擎级灵活性旋钮(落地硬直 / 闪避冷却 / 空中操控 / 冲刺取消)
+  const fSrc2 = fs.readFileSync(path.join(ROOT, "js", "fighter.js"), "utf8");
+  for (const [re, what] of [[/backdashCd = 32/, "backdash cooldown 32"],
+                            [/this\.vx \+= mx \* 0\.75/, "air accel 0.75"],
+                            [/const cap = this\.c\.walk \* 1\.3/, "air cap 1.3x walk"],
+                            [/this\.dashT > 3/, "dash-cancel at 3t"],
+                            [/lockout = 3/, "landing lockout 3"]]) {
+    if (!re.test(fSrc2)) throw new Error("mobility knob missing: " + what);
+  }
+  ok("engine agility knobs in place: landing lockout 3/5, backdash cd 32, air accel 0.75 @1.3x cap, dash-cancel 3t");
+
+  /* ---------- 5.6) 加成只给玩家 + 打怪爽度层 ---------- */
+  console.log("[5.6] player-only buffs & mob-slaying juice");
+  // 对战/训练不受影响: 双方实例的 mob/dmgDealt/meterMul 必须是中性的
+  G_("startMatch('xiaoyan', 'tank', 'normal', false, false, false, true)");
+  step(3);
+  const vs = JSON.parse(G_(`JSON.stringify(G.fighters.map(f => ({ mob: f.mob, dd: f.dmgDealt, mm: f.meterMul })))`));
+  for (const f of vs) {
+    if (f.mob !== 1 || f.dd !== undefined || f.mm !== undefined) {
+      throw new Error("versus mode contaminated by quest buffs: " + JSON.stringify(vs));
+    }
+  }
+  ok("versus/training untouched — buffs live on quest player instances, not DATA");
+
+  // 闯关: 玩家被抬(机动/出伤/攒气), 杂兵与 Boss 反而被压慢
+  G_("Quest.start('xiaoyan', 'normal'); Quest.st.phase='fight'; Quest.spawnWave(Quest.LEVELS[0].waves[0]);");
+  const buff = JSON.parse(G_(`(() => { const st=Quest.st, P=Quest.PLAYER, D=Quest.DIFF.normal;
+    const e = st.enemies[0];
+    return JSON.stringify({ pMob: st.player.mob, pDmg: st.player.dmgDealt, pMeter: st.player.meterMul,
+      eMob: e.mob, wantP: [P.mob, P.dmg, P.meter], wantE: D.mookMob }); })()`));
+  if (buff.pMob !== buff.wantP[0] || buff.pDmg !== buff.wantP[1] || buff.pMeter !== buff.wantP[2])
+    throw new Error("player buffs not applied: " + JSON.stringify(buff));
+  if (!(buff.eMob < 1) || buff.eMob !== buff.wantE) throw new Error("mook mobility not damped: " + JSON.stringify(buff));
+  if (!(buff.pMob > buff.eMob)) throw new Error("player not more mobile than mooks");
+  ok(`quest: player mob x${buff.pMob} dmg x${buff.pDmg} meter x${buff.pMeter} vs mook mob x${buff.eMob}`);
+
+  // mob 系数真的影响走速(引擎读 this.mob, 不是只存着好看)
+  const walked = JSON.parse(G_(`(() => { const p = Quest.st.player;
+    const step1 = (mob) => { p.mob = mob; p.x = 400; p.state='idle'; p.vx=0;
+      p.pad = Object.assign(emptyPad(), { right: true });
+      p.groundedLogic(Quest.st.enemies[0]); return p.vx; };
+    const slow = step1(1), fast = step1(Quest.PLAYER.mob);
+    p.mob = Quest.PLAYER.mob;
+    return JSON.stringify({ slow, fast }); })()`));
+  if (!(walked.fast > walked.slow)) throw new Error("this.mob has no effect on walk speed: " + JSON.stringify(walked));
+  ok(`instance mob multiplier reaches the movement code (walk vx ${walked.slow} -> ${walked.fast})`);
+
+  // 爽度层: 命中飘伤害数字 + 连击累计 + 连杀横幅
+  const juice = JSON.parse(G_(`(() => {
+    const st = Quest.st, p = st.player, e = st.enemies[0];
+    Effects.texts.length = 0;
+    const before = e.hp;
+    Quest._juiceHit(p, e, 23);
+    Quest._juiceHit(p, e, 31);
+    return JSON.stringify({ texts: Effects.texts.length, combo: st.combo ? st.combo.n : 0,
+                            best: st.best || 0, hp: before }); })()`));
+  if (juice.texts < 2) throw new Error("damage numbers not spawned: " + JSON.stringify(juice));
+  if (juice.combo < 2) throw new Error("combo counter not accumulating: " + JSON.stringify(juice));
+  ok(`hit juice: floating damage numbers + combo counter (${juice.combo} hit tracked, best ${juice.best})`);
+
+  // 超必溅射: 演出期间非镜头目标也掉血(超必=清场技)
+  const splash = JSON.parse(G_(`(() => {
+    const st = Quest.st, p = st.player;
+    st.enemies.forEach(e => { e.hp = e.maxHp = 400; e.dispHp = 400; });
+    const focus = st.enemies[0], other = st.enemies[1];
+    p._focus = focus; p.x = other.x - 60;
+    p.superSeq = { hits: 4, interval: 9, dmgPer: 8, final: 14, t: 0, done: 0, scale: 1 };
+    p._splashT = 0;
+    const hp0 = other.hp;
+    for (let i = 0; i < 30; i++) { p._splashT = i; Quest.update(); }
+    return JSON.stringify({ hp0, hp1: other.hp }); })()`));
+  if (!(splash.hp1 < splash.hp0)) throw new Error("super splash never damaged bystanders: " + JSON.stringify(splash));
+  ok(`super is a screen-clear: bystander took ${splash.hp0 - splash.hp1} splash damage during the cine`);
+  G_("Quest.st && Quest.exit();");
+
   /* ---------- 6) 双人副本 CO-OP ---------- */
   console.log("[6] two-player co-op dungeon");
   // 菜单入口: 标题第 2 项(index 1) = 双人副本; 走 char -> char2 -> diff -> startCoop

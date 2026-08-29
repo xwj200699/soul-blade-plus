@@ -36,6 +36,10 @@ class Fighter {
     this.lastHurt = 0;         // world tick of last damage taken (training regen)
     this.superSeq = null;      // cinematic super in progress
     this.flash = 0;            // white flash on hit
+    /* 实例级机动系数(M1.4): 走/冲/后撤/空中操控统一乘它。对战恒为 1;
+       闯关里只给玩家抬(>1)、给杂兵压(<1) —— 属性表仍是全局唯一真值,
+       "只给玩家加成"这件事不污染 DATA。 */
+    this.mob = 1;
     this.pad = emptyPad();
   }
 
@@ -148,7 +152,8 @@ class Fighter {
     return predicted <= 2 ? 1 : predicted <= 4 ? 0.72 : 0.5;
   }
 
-  gainMeter(n) { this.meter = Math.min(100, this.meter + n); }
+  /* meterMul: 实例级攒气系数(闯关只给玩家抬) —— 超必来得更勤, 打怪更爽 */
+  gainMeter(n) { this.meter = Math.min(100, this.meter + n * (this.meterMul || 1)); }
 
   // ---- attack start / chain -------------------------------------------------
   startMove(key, chained = false) {
@@ -270,7 +275,7 @@ class Fighter {
     }
 
     if (p.jump) {
-      return this.doJump((p.right ? 1 : p.left ? -1 : 0) * this.c.walk * 1.15);
+      return this.doJump((p.right ? 1 : p.left ? -1 : 0) * this.c.walk * 1.15 * this.mob);
     }
 
     if (p.crouch) { this.state = 'crouch'; this.crouchT = 0; this.vx = 0; return; }
@@ -281,10 +286,10 @@ class Fighter {
     const threat = opp.state === 'attack' && Math.abs(opp.x - this.x) < 340;
     if (threat && mx !== 0 && mx === -this.facing) {
       this.state = 'guard';
-      this.vx = mx * this.c.walk * 0.45;
+      this.vx = mx * this.c.walk * 0.45 * this.mob;
       return;
     }
-    this.vx = mx * this.c.walk;
+    this.vx = mx * this.c.walk * this.mob;
     this.state = mx !== 0 ? 'walk' : 'idle';
   }
 
@@ -318,10 +323,11 @@ class Fighter {
       if (p.heavy) return this.startMove('dive');
       if (p.light) return this.startMove('air');
     }
-    // real air control: steer toward held direction, capped at walk speed
+    // real air control: steer toward held direction, capped just above walk speed
+    // (M1.4 灵活性: 加速 0.55->0.75、上限 1.15->1.3x 走速 —— 空中不再像在水里划)
     const mx = (p.right ? 1 : 0) + (p.left ? -1 : 0);
-    this.vx += mx * 0.55;
-    const cap = this.c.walk * 1.15;
+    this.vx += mx * 0.75 * this.mob;
+    const cap = this.c.walk * 1.3 * this.mob;
     this.vx = Math.max(-cap, Math.min(cap, this.vx));
     this.state = this.vy < 0 ? 'jump' : 'fall';
   }
@@ -344,20 +350,20 @@ class Fighter {
   startBackdash(dir) {
     this.state = 'backdash'; this.dashT = 0; this.dashDir = dir;
     this.invuln = 13;           // dodge i-frames
-    this.backdashCd = 42;
+    this.backdashCd = 32;       // M1.4 灵活性: 42->32, 闪避可用得更勤
     Effects.dust(this.x, this.y, 7, -dir);
     AudioSys.sfx('dodge');
   }
 
   dashLogic() {
     this.dashT++;
-    this.vx = this.dashDir * (this.c.dashVx || 9);
+    this.vx = this.dashDir * (this.c.dashVx || 9) * this.mob;
     if (this.dashT % 3 === 0) Effects.ghost(this.spriteParams());
     const p = this.pad;
     // dash-jump: leap carrying dash momentum
     if (p.jump) return this.doJump(this.dashDir * 8);
-    // dash can cancel into attacks after a few ticks
-    if (this.dashT > 5) {
+    // dash can cancel into attacks after a few ticks (M1.4 灵活性: 5->3, 冲刺斩出得更快)
+    if (this.dashT > 3) {
       if (p.super && this.superReady()) return this.startMove('super');
       if (p.special && this.specialReady()) return this.startMove('special');
       if (p.heavy) return this.startMove('heavy');
@@ -369,7 +375,7 @@ class Fighter {
 
   backdashLogic() {
     this.dashT++;
-    this.vx = this.dashDir * (this.c.backdashVx || 7.5);
+    this.vx = this.dashDir * (this.c.backdashVx || 7.5) * this.mob;
     if (this.dashT % 3 === 0) Effects.ghost(this.spriteParams());
     if (this.pad.jump) return this.doJump(this.dashDir * 6); // hop-back
     if (this.dashT >= 17) { this.state = 'idle'; this.vx = 0; }
@@ -1037,10 +1043,10 @@ class Fighter {
           AudioSys.sfx('slam');
         }
         else if (this.state === 'attack' && this.move && this.move.def.air) {
-          this.move = null; this.state = 'idle'; this.lockout = 8;
+          this.move = null; this.state = 'idle'; this.lockout = 5;   // M1.4 灵活性: 8->5
           AudioSys.sfx('land');
         } else if (this.state === 'jump' || this.state === 'fall') {
-          this.state = 'idle'; this.lockout = 5;
+          this.state = 'idle'; this.lockout = 3;                     // M1.4 灵活性: 5->3
           AudioSys.sfx('land');
         }
       }

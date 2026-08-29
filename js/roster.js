@@ -1163,6 +1163,57 @@ for (const [cid, tbl] of Object.entries({
   }
 })();
 
+/* ================================================================================
+   普攻 / 重击 手长加长 (M1.4 ·「显得很笨重」)
+   192px 骨架的六位(晓艳/毅/景英/文萱/泽轩/钰胜)当年按精灵图内比例定判定框, 结果
+   手长只有 112-148px, 而 200px 骨架的文杰/翔/欣韵是 194-208px —— 差了三到四成。
+   实战表现就是"明明贴着人却打空", 出招又慢, 于是读作笨重。
+   这里按角色统一放长普攻家族(J/K 及其蹲/空/冲刺变体)的前伸判定, 让他们落到
+   143-190px 区间: 仍短于两位长刀侍(长手是那两人的身份), 但不再够不着人。
+   只动 box.x2(前伸), 不动伤害/帧数/纵向覆盖 —— 手长是唯一在动的旋钮。 */
+(() => {
+  // 每人一个前伸系数(以各自原始比例为基准等比放长, 保住角色内部的招式差异)
+  const REACH = { wukong: 1.28, xiaoyan: 1.27, diaochan: 1.29, angela: 1.29, doctor: 1.30, tank: 1.28 };
+  // 普攻家族: 站/蹲/空中/冲刺的 J 与 K(必杀/超必不在此列, 它们由上面的范围强化段负责)
+  const NORMALS = ['light', 'light2', 'heavy', 'heavy2', 'clight', 'clight2', 'cheavy', 'air', 'dive', 'dashslash'];
+  for (const [cid, k] of Object.entries(REACH)) {
+    const mv = DATA[cid] && DATA[cid].moves;
+    if (!mv) continue;
+    for (const mk of NORMALS) {
+      const m = mv[mk];
+      if (!m || !m.box) continue;          // 投射物普攻(泽轩的 J/K)没有判定框, 自然跳过
+      m.box = { x1: m.box.x1, x2: Math.round(m.box.x2 * k), y1: m.box.y1, y2: m.box.y2 };
+      m._reachBoosted = true;
+    }
+  }
+})();
+
+/* ================================================================================
+   机动性分档 (M1.4 ·「调整所有英雄的灵活程度」)
+   问题: 选人页显示的「速」属性(stats.spd)和实际走速/冲刺完全脱节 —— 文萱标着
+   速 5 却只有 walk 3.6 / dash 7.2(比标速 4 的欣韵还慢), 毅标速 4 只有 walk 3.2,
+   钰胜 walk 2.6 / dash 6.0 几乎推不动。于是"灵活程度"读起来又乱又笨重。
+   做法: 按 stats.spd 定四档机动性基线, 每个人只往上抬、绝不下调 —— 这样
+   文杰/翔/欣韵那套经过多轮镜像对局校准的手感不会被推翻, 而落后的几位补齐到
+   自己属性该有的水平。属性条从此是可信的。
+   四个旋钮: walk 走速 / jumpVy 跳跃初速(更负=更高) / dashVx 前冲 / backdashVx 后撤 */
+(() => {
+  const TIER = {
+    5: { walk: 4.3, jumpVy: -16.5, dashVx: 9.0, backdashVx: 7.6 },  // 极速: 翔 / 文萱 / 晓艳
+    4: { walk: 3.8, jumpVy: -16.0, dashVx: 8.4, backdashVx: 7.3 },  // 敏捷: 欣韵 / 毅 / 吉川 / 泽轩
+    3: { walk: 3.3, jumpVy: -15.8, dashVx: 7.8, backdashVx: 7.0 },  // 均衡: 文杰 / 景英
+    2: { walk: 3.0, jumpVy: -15.4, dashVx: 7.2, backdashVx: 6.8 },  // 重装: 钰胜(仍是全场最慢)
+  };
+  for (const c of Object.values(DATA)) {
+    const t = TIER[(c.stats && c.stats.spd) || 3] || TIER[3];
+    c.walk = Math.max(c.walk || 0, t.walk);
+    c.jumpVy = Math.min(c.jumpVy !== undefined ? c.jumpVy : 0, t.jumpVy);
+    // dashVx/backdashVx 缺省时 fighter.js 兜底 9 / 7.5, 未写的角色不能被"抬"成更慢
+    c.dashVx = Math.max(c.dashVx !== undefined ? c.dashVx : 9, t.dashVx);
+    c.backdashVx = Math.max(c.backdashVx !== undefined ? c.backdashVx : 7.5, t.backdashVx);
+  }
+})();
+
 
 (() => {
   const K = { dmg: 1.6, chip: 1.5, guardDmg: 1.4, meterHit: 1.2 };

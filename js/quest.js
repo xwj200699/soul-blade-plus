@@ -21,12 +21,24 @@ const Quest = {
        drop/heal   杂兵掉补给概率 / 清波与过关的回血比例 */
   DIFF: {
     easy:   { mook: 0.62, boss: 0.6,  ai: 'easy',   bossAi: 'easy',   dmg: 0.5,  bossDmg: 0.62,
+              mookMob: 0.80, bossMob: 0.90,
               attackers: 1, rest: 46, lives: 7, drop: 0.65, waveHeal: 0.24, heal: 0.8 },
     normal: { mook: 0.92, boss: 0.85, ai: 'normal', bossAi: 'normal', dmg: 0.78, bossDmg: 0.88,
+              mookMob: 0.88, bossMob: 0.95,
               attackers: 2, rest: 24, lives: 3, drop: 0.42, waveHeal: 0.13, heal: 0.58 },
     hard:   { mook: 1.28, boss: 1.15, ai: 'hard',   bossAi: 'hard',   dmg: 1.05, bossDmg: 1.1,
+              mookMob: 0.96, bossMob: 1.0,
               attackers: 3, rest: 8,  lives: 2, drop: 0.24, waveHeal: 0.06, heal: 0.36 },
   },
+
+  /* ---------------- 玩家侧加成 (M1.4 ·「只给玩家加成, 打怪要爽」) ----------------
+     全部挂在玩家 Fighter 实例上, 一个字节都不动 DATA —— 所以对战/训练的平衡不变,
+     只有闯关里的主角变强, 杂兵反而被压慢一点(DIFF.mookMob)。
+       mob    机动系数(走/冲/后撤/空中操控)
+       dmg    出伤系数(fighter.receiveHit 读 attacker.dmgDealt)
+       meter  攒气系数(fighter.gainMeter 读 meterMul) —— 超必来得勤
+       splash 超必演出期间对"非镜头目标"的溅射伤害比例(超必变成清场技) */
+  PLAYER: { mob: 1.22, dmg: 1.45, meter: 1.6, splash: 0.5 },
 
   /* 补给道具: 清波必掉一个, 杂兵按 D.drop 概率掉 —— 闯关"续航"的来源 */
   ITEMS: {
@@ -240,6 +252,10 @@ const Quest = {
       f.dispHp = f.hp;
       f._pad = k === 0 ? humanPad : humanPad2;   // 各自的手柄源
       f._pnum = k + 1;
+      // 玩家侧加成(见 PLAYER): 更灵活 / 打得更痛 / 攒气更快
+      f.mob = this.PLAYER.mob;
+      f.dmgDealt = this.PLAYER.dmg;
+      f.meterMul = this.PLAYER.meter;
       return f;
     });
     st.player = st.players[0]; // 主玩家别名(相机/主 HUD/环境粒子 仍以其为锚)
@@ -275,6 +291,7 @@ const Quest = {
     f.dispHp = f.hp;
     f.isMook = true;
     f.dmgDealt = D.dmg * dmgRamp; // 杂兵出伤系数(fighter.receiveHit 读取)
+    f.mob = D.mookMob;             // 杂兵机动被压慢一点 —— 加成只给玩家
     f.gainMeter = () => {};        // 杂兵不攒气 —— 小兵放超必是"打不过"的隐形元凶
     f.superReady = () => false;
     f.tint = this.MOOK_TINTS[tintIdx % this.MOOK_TINTS.length];
@@ -310,6 +327,7 @@ const Quest = {
     b.maxHp = b.hp = Math.round(L.boss.hp * D.boss * (L.boss.bossMul || 1) * BASE_HP / 100);
     b.dispHp = b.hp;
     b.isBoss = true;
+    b.mob = D.bossMob;
     b.bossMul = L.boss.bossMul || 1;   // HUD 据此显示"耐久型"警示 + 分段血条
     b.dmgDealt = D.bossDmg;
     b.bossName = L.boss.name;
@@ -581,9 +599,30 @@ const Quest = {
     for (const pl of st.players) {
       if (pl._out) continue;                 // 彻底出局的队友: 保持倒地, 不再更新
       const focus = alive.slice().sort((a, b) => Math.abs(a.x - pl.x) - Math.abs(b.x - pl.x))[0] || st.dummy;
+      pl._focus = focus;                     // 超必分镜锁定的那一个(溅射要排除它)
       pl.update(focus);
     }
     for (const e of alive) e.update(e._ai.opp || p);
+
+    // 超必 = 清场技(爽度层): 分镜只咬住镜头目标一个人, 这里给场上其余敌人补溅射,
+    // 打完一套超必周围一圈跟着炸 —— 「越爽越好」最直接的一刀
+    for (const pl of st.players) {
+      if (!pl.superSeq) continue;
+      pl._splashT = (pl._splashT || 0) + 1;
+      if (pl._splashT % 9) continue;
+      for (const e of alive) {
+        if (e === pl._focus || e.dead) continue;
+        if (Math.abs(e.x - pl.x) > 420) continue;
+        const dmg = Math.max(2, Math.round((pl.c.moves.super.cine ? pl.c.moves.super.cine.dmgPer : 8)
+                                          * this.PLAYER.splash * (pl.dmgDealt || 1)));
+        e.hp = Math.max(0, e.hp - dmg);
+        e.flash = 5;
+        e.lastHurt = G.tick;
+        Effects.impact(e.x, e.y - 96, Math.sign(e.x - pl.x) || 1, { tier: 2, color: pl.c.theme2 });
+        Effects.text(e.x, e.y - 150 - (e._dmgStack = ((e._dmgStack || 0) + 1) % 3) * 16,
+                     String(dmg), '#ffd0a0', 12);
+      }
+    }
 
     // 耐久 Boss(bossMul>1)续航: 超长战里没有杂兵掉补给, 玩家会打到弹尽粮绝。
     // 每隔一段时间(血越低越勤)在场上补一份补给, 让"打大墙"是持久战而非饿死战。
@@ -610,6 +649,22 @@ const Quest = {
           Effects.spark(e.x, e.y - 90, 0, ['#ffd24a', '#ffffff', '#c8452c'], 12, 5);
           for (const pl of this._living()) pl.gainMeter(8);
           if (!e.isBoss) this._rollDrop(e.x);   // 杂兵掉补给(续航来源)
+          // 连杀爽度: 30tick 内连续击破 -> 横幅 + 慢镜 + 重震, 一波带走的快感
+          if (!e.isBoss) {
+            if (G.tick - (st.killT || -99) > 30) st.killRun = 0;
+            st.killRun = (st.killRun || 0) + 1;
+            st.killT = G.tick;
+            if (st.killRun >= 2) {
+              const NAME = ['', '', 'DOUBLE', 'TRIPLE', 'QUAD', 'PENTA'];
+              Effects.text(e.x, e.y - 200, `${NAME[Math.min(5, st.killRun)]} K.O.!`, '#ff9db8', 18);
+              Effects.shockRing(e.x, e.y - 40, '#ffd24a');
+              Effects.flashFrame({ alpha: 0.2 + Math.min(4, st.killRun) * 0.04, t: 3 });
+              G.hitstop(8 + st.killRun * 2);
+              G.shake(8 + st.killRun, 12);
+              G.slowmoT = 14; G.slowmo = 0.45; G.slowAcc = 0;
+              AudioSys.sfx('superFlash');
+            }
+          }
         }
         if (e._deadT < 56) e.update(e._ai.opp || p); // 死亡动画推进
       }
@@ -623,10 +678,14 @@ const Quest = {
     }
 
     // ---- 战斗解算(每位玩家 ↔ 每个敌人) ----
+    // 打怪爽度层: 记下每次真实掉血, 就地飘伤害数字 + 累计连击 —— 反馈直接可见
     for (const pl of this._living()) {
       const plBox = pl.activeBox(), plMove = pl.move;
       for (const e of alive) {
+        const hp0 = e.hp;
         tryHit(pl, e, plBox, plMove);
+        const dealt = Math.round(hp0 - e.hp);
+        if (dealt > 0) this._juiceHit(pl, e, dealt);
         tryHit(e, pl, e.activeBox(), e.move);
       }
     }
@@ -880,6 +939,34 @@ const Quest = {
     if (p.meter >= 100 && G.tick % 30 < 18) UI.pixText(ctx, '超必 READY', 300, y + 20, { size: 8, align: 'right', color: '#ff9a52' });
   },
 
+  /* ---------------- 打怪爽度层 (M1.4) ----------------
+     每一次真实掉血都给出可读的反馈: 伤害数字往上飘 + 连击数累计 + 阶段性喝彩,
+     连击越长字越大越亮。数字用堆叠偏移防止同帧多个数字重叠成一团。 */
+  _juiceHit(pl, e, dealt) {
+    const st = this.st;
+    e._dmgStack = ((e._dmgStack || 0) + 1) % 4;
+    const big = dealt >= 26;
+    Effects.text(e.x + (Math.random() - 0.5) * 14, e.y - 132 - e._dmgStack * 17,
+                 String(dealt), big ? '#ffd24a' : '#fff2d8', big ? 16 : 13);
+    // 连击: 1.1s 内的连续命中算一串(每位玩家各自计数)
+    if (G.tick - (pl._hitT || -99) > 66) pl._hits = 0;
+    pl._hits = (pl._hits || 0) + 1;
+    pl._hitT = G.tick;
+    st.combo = { n: pl._hits, t: G.tick, who: pl._pnum || 1 };
+    st.best = Math.max(st.best || 0, pl._hits);
+    // 里程碑喝彩 + 额外顿帧/震屏, 越打越响
+    const CHEER = { 5: ['NICE!', '#8ae06a'], 10: ['GREAT!!', '#7fd3ff'],
+                    15: ['AMAZING!!', '#ffd24a'], 20: ['UNREAL!!!', '#ff9db8'] };
+    const c = CHEER[pl._hits];
+    if (c) {
+      Effects.text(pl.x, pl.y - 226, `${pl._hits} HIT ${c[0]}`, c[1], 17);
+      Effects.ring(pl.x, pl.y - 90, c[1], 14);
+      G.hitstop(4);
+      G.shake(4, 8);
+      AudioSys.sfx('menuSel');
+    }
+  },
+
   _hud(ctx, L) {
     const st = this.st;
     // 玩家状态条: P1 左上; 双人时 P2 叠在其下
@@ -901,6 +988,18 @@ const Quest = {
     const label = st.boss ? 'BOSS' : (st.phase === 'fight' ? `WAVE ${st.waveIdx + 1}/${wavesN}` : `前进 ${Math.min(100, Math.round(this._lead().x / (L.worldW - 620) * 100))}%`);
     UI.pixText(ctx, `${L.sub} ${st.level + 1}/${this.LEVELS.length} · ` + label + ` · 击破 ${st.kills}`,
       1010, 48, { size: 10, align: 'right', color: '#9aa3bd' });
+    // 连击计数(右侧中段): 命中后 1.1s 内保持显示, 数字随连击数变大变亮 —— 爽度可视化
+    if (st.combo && G.tick - st.combo.t < 66 && st.combo.n >= 2) {
+      const n = st.combo.n, age = (G.tick - st.combo.t) / 66;
+      const pop = 1 + Math.max(0, .35 - (G.tick - st.combo.t) * .05);
+      const col = n >= 20 ? '#ff9db8' : n >= 15 ? '#ffd24a' : n >= 10 ? '#7fd3ff' : n >= 5 ? '#8ae06a' : '#e8e2d0';
+      ctx.save();
+      ctx.globalAlpha = 1 - age * .35;
+      UI.pixText(ctx, String(n), 990, 132, { size: Math.round((22 + Math.min(14, n)) * pop), align: 'right', color: col, outline: true });
+      UI.pixText(ctx, 'HIT', 990, 152, { size: 11, align: 'right', color: col });
+      if (st.combo.who === 2) UI.pixText(ctx, 'P2', 990, 168, { size: 9, align: 'right', color: '#7ecbff' });
+      ctx.restore();
+    }
     // Boss 血条(顶中)
     const b = st.boss;
     if (b && !b.dead) {

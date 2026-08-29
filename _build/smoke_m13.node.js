@@ -101,7 +101,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   /* 1) sizes / crouch box (十人: 七人 + 校园电力风 doctor/tank + 新英雄 xiaoyan) */
   if (G_("ROSTER.length") !== 10 || G_("ROSTER[6]") !== "diaochan" ||
       G_("ROSTER[7]") !== "doctor" || G_("ROSTER[8]") !== "tank" || G_("ROSTER[9]") !== "xiaoyan") throw new Error("roster != 10 (diaochan/doctor/tank/xiaoyan)");
-  const visH = { mack: 150, kenji: 145, ayame: 150, wukong: Math.round(83 * G_("DATA.wukong.scale")), houyi: Math.round(79 * G_("DATA.houyi.scale")), angela: Math.round(77 * G_("DATA.angela.scale")), diaochan: Math.round(80 * G_("DATA.diaochan.scale")), doctor: Math.round(84 * G_("DATA.doctor.scale")), tank: Math.round(81 * G_("DATA.tank.scale")), xiaoyan: 150 };
+  const visH = { mack: 150, kenji: 145, ayame: 150, wukong: Math.round(83 * G_("DATA.wukong.scale")), houyi: Math.round(79 * G_("DATA.houyi.scale")), angela: Math.round(77 * G_("DATA.angela.scale")), diaochan: Math.round(80 * G_("DATA.diaochan.scale")), doctor: Math.round(84 * G_("DATA.doctor.scale")), tank: Math.round(81 * G_("DATA.tank.scale")), xiaoyan: Math.round(84 * G_("DATA.xiaoyan.scale")) };
   const hs = Object.values(visH);
   const spread = (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs);
   console.log("display heights (10) spread:", (spread * 100).toFixed(1) + "%");

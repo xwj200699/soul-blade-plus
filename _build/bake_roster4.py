@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Roster baker v4 —— 新英雄 小艳 / 梅晓艳 (BLOSSOM · 红梅剑舞).
+"""Roster baker v4 —— 新英雄 晓艳 / 梅晓艳 (BLOSSOM · 红梅剑舞).
 
 完全新画的一套 192px 帧, 不复用任何现有角色的模板:
   · 专属调色板(红梅 + 破晓金 + 墨紫发)

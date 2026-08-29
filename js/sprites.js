@@ -1427,7 +1427,7 @@ class Projectile {
       ctx.fillStyle = '#eaf8ff';
       ctx.fillRect(-2, -2, 4, 4);
     } else if (this.kind === 'plum') {
-      // 小艳·梅吹雪: 一朵旋转的五瓣红梅 + 拖尾落瓣, 慢速自旋(读作"飞花")
+      // 晓艳·梅吹雪: 一朵旋转的五瓣红梅 + 拖尾落瓣, 慢速自旋(读作"飞花")
       ctx.rotate(this.t * 0.32 * this.dir);
       ctx.fillStyle = 'rgba(226,58,110,0.24)';
       ctx.fillRect(-14, -14, 28, 28);                // 花光晕

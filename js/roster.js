@@ -271,10 +271,10 @@ DATA.angela = {
   },
 };
 
-/* ---------- 文宣 diaochan (DANCE · 双扇舞姬) —— M1.3 ---------- */
+/* ---------- 文萱 diaochan (DANCE · 双扇舞姬) —— M1.3 ---------- */
 DATA.diaochan = {
   id: 'diaochan',
-  name: 'WENXUAN', cn: '文宣', title: '月下の舞姫', type: 'DANCE',
+  name: 'WENXUAN', cn: '文萱', title: '月下の舞姫', type: 'DANCE',
   theme: '#e2547a', theme2: '#ff9db8',
   dir: 'assets/img/diaochan', fw: 192, native: 1, scale: 1.85,
   anchor: { x: 70, y: 150 },
@@ -595,17 +595,18 @@ const _cSeq = (f) => ({ w: [{ a: 'crouch', f: 0 }], i: { a: 'crouch', f }, r: [{
 const _upSeq = (imp, rec) => ({ w: [{ a: 'crouch', f: 0 }], i: imp, r: [rec] });
 
 /* ================================================================================
-   新英雄 小艳 · 梅晓艳 (M1.4 追加, 玩家点名新增)
+   新英雄 晓艳 · 梅晓艳 (M1.4 追加, 玩家点名新增)
    名字拆解 —— 梅: 红梅 / 晓: 破晓的金 / 艳: 明艳的舞。据此定形:
      身份 = 剑舞者(BLOSSOM), 以红梅刀光起舞, 快斩+浮空, 招牌远程「梅吹雪」撒飞花,
-     超必「満開・紅梅乱舞」走花瓣舞杀分镜(与貂蝉同骨架, 红梅/晓金配色)。
-   素材复用 Huntress 体(与欣韵同骨架, 换红梅调色) —— 全游戏本就是"换皮"路线,
-   通过 theme/刀光重染/飞花 fx 与欣韵(青·长枪)彻底区分手感与观感。
-   fw=150, scale 3.4, 无烘焙蹲帧 —— 蹲攻/挑空沿用 attack3/attack1 的低位与升位身法。
+     超必「満開・紅梅乱舞」走花瓣舞杀分镜(红梅/晓金配色)。
+   精灵图是她专属的一套(不套任何现成角色模板): 由 _build/bake_roster4.py 新画 ——
+   专属调色板 + 花簪双丸子头 + 交领旗袍舞衣 + 细剑/剑穗/绢带画笔, 另有第三套
+   攻击表 Attack3(沉身低位突刺) 供蹲攻与冲刺斩使用。
+   192px 帧 / 命中帧 f4 / attack1·2 烘了白月牙层 -> 引擎实时染成红梅色。
    ================================================================================ */
 DATA.xiaoyan = {
   id: 'xiaoyan',
-  name: 'XIAOYAN', cn: '小艳', title: '紅梅の舞姫', type: 'BLOSSOM',
+  name: 'XIAOYAN', cn: '晓艳', title: '紅梅の舞姫', type: 'BLOSSOM',
   theme: '#e23a6e', theme2: '#ffcf87',   // 红梅 + 破晓金
   dir: 'assets/img/xiaoyan', fw: 192, native: 1, scale: 1.8, // 专属帧(_build/bake_roster4.py)
   anchor: { x: 70, y: 150 },
@@ -869,7 +870,7 @@ Object.assign(DATA.angela.moves, {
   },
 });
 
-/* ---------- 文宣 diaochan: 双扇全套 (DANCE · 速度型) ---------- */
+/* ---------- 文萱 diaochan: 双扇全套 (DANCE · 速度型) ---------- */
 Object.assign(DATA.diaochan.moves, {
   light2: { // 双扇连斩(J·J 第二段): 另一把扇低半格补一刀
     kind: 'light', anim: 'attack2', total: 19, startup: 4, active: 5, impact: 4,

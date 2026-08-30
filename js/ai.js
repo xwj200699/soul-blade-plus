@@ -7,12 +7,16 @@
    projSpecial  = kenji-style throw; longArm = extra reach on normals. */
 function aiKit(f) {
   const sp = f.c.moves.special || {};
+  const reach = (k) => (f.c.moves[k] && f.c.moves[k].box) ? f.c.moves[k].box.x2 : 0;
   return {
     meleeSpecial: !sp.projectile && !!sp.box,
     projSpecial: !!sp.projectile,
     airProj: !!f.c.moves.airspecial,
     dashSlash: !!f.c.moves.dashslash,
-    longArm: (f.c.moves.heavy && f.c.moves.heavy.box && f.c.moves.heavy.box.x2 >= 220) || f.c.id === 'mack',
+    // 长手 = 普攻家族里最长的那一下够到 190px 以上(文杰 208 / 翔 202 / 欣韵 205)。
+    // 旧阈值写的是 heavy>=220 —— 全场没人达到, 于是只能靠 id==='mack' 兜底成立,
+    // 翔和欣韵被当短手, AI 会主动走进对手刀圈。改成取 J/K 的较大值并下调阈值。
+    longArm: Math.max(reach('light'), reach('heavy')) >= 190,
   };
 }
 class AIController {

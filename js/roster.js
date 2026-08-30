@@ -11,7 +11,6 @@
 (() => {
   const c = DATA.ayame;
   if (!c) return;
-  c.dash = c.dash || { from: 3, to: 14, vx: 9 };
   c.body = c.body || { w: 30, h: 150, crouchH: 100 }; // M1.1
   c.moves = c.moves || {};
   if (!c.moves.air) {
@@ -44,7 +43,6 @@ DATA.wukong = {
   anchor: { x: 70, y: 150 },
   body: { w: 30, h: 148, crouchH: 96 },
   walk: 3.2, jumpVy: -16.5, dashVx: 7.8, backdashVx: 6.6,
-  dash: { from: 3, to: 18, vx: 7.2 },
   stats: { pow: 5, spd: 4, rng: 4 },
   quoteWin: '俺老孙的棒子，可还合口味？', quoteLose: '啧……且待俺再来！',
   portrait: { x: 51, y: 66, w: 38, h: 38 }, // 192px 骨架的头部方框(file:// 抠图失败时的回退框)
@@ -122,7 +120,6 @@ DATA.houyi = {
   anchor: { x: 70, y: 150 },
   body: { w: 30, h: 146, crouchH: 94 },
   walk: 3.4, jumpVy: -15.5, dashVx: 7.0, backdashVx: 7.0,
-  dash: { from: 3, to: 16, vx: 6.8 },
   stats: { pow: 3, spd: 4, rng: 5 },
   quoteWin: '九日尚可落，何况是你。', quoteLose: '这一箭……竟脱了靶。',
   portrait: { x: 51, y: 66, w: 38, h: 38 }, // 192px 骨架的头部方框(file:// 抠图失败时的回退框)
@@ -213,7 +210,6 @@ DATA.angela = {
   anchor: { x: 70, y: 150 },
   body: { w: 28, h: 144, crouchH: 92 },
   walk: 3.0, jumpVy: -15, dashVx: 6.6, backdashVx: 6.8,
-  dash: { from: 3, to: 15, vx: 6.4 },
   stats: { pow: 4, spd: 3, rng: 5 },
   quoteWin: '火花，是最美的谢幕。', quoteLose: '呜……魔法书借你看一晚啦。',
   portrait: { x: 51, y: 66, w: 38, h: 38 }, // 192px 骨架的头部方框(file:// 抠图失败时的回退框)
@@ -280,7 +276,6 @@ DATA.diaochan = {
   anchor: { x: 70, y: 150 },
   body: { w: 28, h: 145, crouchH: 93 },
   walk: 3.6, jumpVy: -15.5, dashVx: 7.2, backdashVx: 7.4,
-  dash: { from: 3, to: 15, vx: 7.0 },
   stats: { pow: 3, spd: 5, rng: 4 },
   quoteWin: '这支舞，只为胜利而作。', quoteLose: '裙摆……乱了呢。',
   portrait: { x: 51, y: 66, w: 38, h: 38 }, // 192px 骨架的头部方框(file:// 抠图失败时的回退框)
@@ -349,7 +344,6 @@ DATA.doctor = {
   anchor: { x: 70, y: 150 },
   body: { w: 28, h: 146, crouchH: 94 },
   walk: 3.3, jumpVy: -15.8, dashVx: 7.0, backdashVx: 7.6,
-  dash: { from: 3, to: 15, vx: 6.8 },
   stats: { pow: 2, spd: 4, rng: 5 },
   quoteWin: '实验结论: 你的输入延迟太高了。', quoteLose: '数据……还得再复现一次。',
   portrait: { x: 51, y: 66, w: 38, h: 38 }, // 192px 骨架的头部方框(file:// 抠图失败时的回退框)
@@ -433,7 +427,6 @@ DATA.tank = {
   anchor: { x: 70, y: 150 },
   body: { w: 34, h: 150, crouchH: 98 },
   walk: 2.6, jumpVy: -14.6, dashVx: 6.0, backdashVx: 5.8,
-  dash: { from: 4, to: 18, vx: 5.8 },
   stats: { pow: 4, spd: 2, rng: 2 },
   dmgTaken: 0.8,   // 钰胜本体特性: 受伤 -20%(fighter.js hurt 读取)
   quoteWin: '安全第一。你违规操作了。', quoteLose: '这盾……得报修了。',
@@ -611,7 +604,6 @@ DATA.xiaoyan = {
   dir: 'assets/img/xiaoyan', fw: 192, native: 1, scale: 1.8, // 专属帧(_build/bake_roster4.py)
   anchor: { x: 70, y: 150 },
   body: { w: 28, h: 146, crouchH: 94 },
-  dash: { from: 3, to: 15, vx: 7.4 },
   walk: 3.9, jumpVy: -15.8, dashVx: 8.2, backdashVx: 7.4,
   stats: { pow: 3, spd: 5, rng: 4 },
   quoteWin: '梅开时节，正好落幕。', quoteLose: '这一枝……还没开够呢。',

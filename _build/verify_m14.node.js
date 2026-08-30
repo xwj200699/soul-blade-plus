@@ -623,6 +623,124 @@ const ok = m => console.log("  ok  " + m);
   ok(`super is a screen-clear: bystander took ${splash.hp0 - splash.hp1} splash damage during the cine`);
   G_("Quest.st && Quest.exit();");
 
+  /* ---------- 5.7) 特效在世界坐标下仍可见(闯关相机平移) ---------- */
+  console.log("[5.7] super FX visible under the quest camera");
+  // 录制型 ctx: 跟踪 translate 偏移, 收集 fillRect 的屏幕 x 区间
+  const cover = G_(`(() => {
+    const mk = () => {
+      const st = []; let off = 0; const rects = [];
+      const c = new Proxy({}, { get(t, k) {
+        if (k === 'save') return () => st.push(off);
+        if (k === 'restore') return () => { off = st.length ? st.pop() : off; };
+        if (k === 'translate') return (x) => { off += x; };
+        if (k === 'fillRect') return (x, y, w, h) => rects.push([off + x, off + x + w]);
+        if (k === '__rects') return rects;
+        if (k === 'measureText') return () => ({ width: 10 });
+        if (k === 'createLinearGradient' || k === 'createRadialGradient') return () => ({ addColorStop() {} });
+        return () => undefined;
+      }, set() { return true; } });
+      return c;
+    };
+    const test = (worldX, cam) => {
+      Effects.reset();
+      Effects.beam(worldX, 300, 1, { life: 18, maxW: 15, core: '#fff', edge: '#f0f', glow: '#fa0' });
+      for (let i = 0; i < 6; i++) Effects.update();
+      const c = mk();
+      c.save(); c.translate(-cam, 0);
+      Effects.drawBeams(c);
+      c.restore();
+      // 有任何一条矩形与可视窗 [0,1024] 相交即算"看得见"
+      return c.__rects.some(([a, b]) => b > 0 && a < 1024);
+    };
+    return JSON.stringify({ vs: test(400, 0), quest: test(2400, 2000), left: test(2400, 2000) });
+  })()`);
+  const cv = JSON.parse(cover);
+  if (!cv.vs) throw new Error("beam invisible even in versus coords");
+  if (!cv.quest) throw new Error("beam still invisible under a scrolled quest camera (world x 2400, cam 2000)");
+  ok("beam FX (吉川 太陽箭 / 景英 熾熱光輝) reach the viewport at world x 2400 with cam 2000");
+  // 回归钉: 光束远端不能再写死屏幕坐标
+  const sprSrc = fs.readFileSync(path.join(ROOT, "js", "sprites.js"), "utf8");
+  if (/b\.dir > 0 \? 1064 : -40/.test(sprSrc)) throw new Error("drawBeams still hardcodes screen-space ends");
+  ok("drawBeams derives its far end from the emitter (no screen-space constants)");
+  // 闯关必须画残影层, 否则冲刺/突进/分身残影全隐形
+  const qSrc = fs.readFileSync(path.join(ROOT, "js", "quest.js"), "utf8");
+  if (!/Effects\.drawGhosts\(ctx\)/.test(qSrc)) throw new Error("Quest.draw does not draw the ghost/afterimage layer");
+  ok("Quest.draw includes the afterimage layer (dash / dive / super-rush ghosts)");
+
+  /* ---------- 5.8) 本轮收拾的隐患 + 新增体验件 ---------- */
+  console.log("[5.8] cleanup & QoL pass");
+  const fSrc3 = fs.readFileSync(path.join(ROOT, "js", "fighter.js"), "utf8");
+  const aiSrc = fs.readFileSync(path.join(ROOT, "js", "ai.js"), "utf8");
+  const rSrc = fs.readFileSync(path.join(ROOT, "js", "roster.js"), "utf8");
+  const qSrc2 = fs.readFileSync(path.join(ROOT, "js", "quest.js"), "utf8");
+  const auSrc = fs.readFileSync(path.join(ROOT, "js", "audio.js"), "utf8");
+  // 3) 死桩子清掉(否则脚本顺序一变, 吉川超必会静默变成一句 warning)
+  if (/尚未实现|runCineArrowRain\s*\(opp, s\)\s*\{\s*\/\//.test(fSrc3)) throw new Error("dead runCineArrowRain stub still in fighter.js");
+  if (!G_("typeof Fighter.prototype.runCineArrowRain === 'function'")) throw new Error("arrowrain cine missing");
+  ok("dead runCineArrowRain stub removed; supers.js implementation is the only one");
+  // 4) longArm 阈值现在真的能命中长手角色
+  const arms = JSON.parse(G_(`JSON.stringify(ROSTER.map(cid => {
+    const f = { c: DATA[cid] };
+    return { cid, cn: DATA[cid].cn, long: aiKit(f).longArm };
+  }))`));
+  const longs = arms.filter(a => a.long).map(a => a.cn);
+  if (!longs.length) throw new Error("longArm still unreachable");
+  if (longs.length === arms.length) throw new Error("longArm now true for everyone — threshold too low");
+  if (/x2 >= 220|id === 'mack'/.test(aiSrc)) throw new Error("longArm still uses the dead 220 threshold / mack hack");
+  ok(`aiKit.longArm reaches real long-weapon fighters: ${longs.join('/')}`);
+  // 5) 角色级 dash 死数据清掉(招式级 def.dash 保留)
+  if (/^  dash: \{/m.test(rSrc)) throw new Error("character-level dead `dash:` fields still present");
+  if (!/dash: \{ from: \d+, to: \d+, vx: [\d.]+ \}/.test(rSrc + fs.readFileSync(path.join(ROOT, "js", "data.js"), "utf8")))
+    throw new Error("move-level def.dash got removed by mistake");
+  ok("dead character-level `dash:` data removed; move-level def.dash intact");
+  // 6) 粒子软上限
+  const capped = G_(`(() => { Effects.reset();
+    for (let i = 0; i < 1500; i++) Effects.parts.push({ x:0,y:0,vx:0,vy:0,life:99,maxLife:99,size:2,color:'#fff',grav:0 });
+    Effects.update();
+    return Effects.parts.length; })()`);
+  if (capped > 500) throw new Error("particle soft cap not enforced: " + capped);
+  ok(`particle soft cap holds under a 1500-spawn burst (-> ${capped})`);
+  // 8) hard 档不再是劝退配置
+  const hd = JSON.parse(G_("JSON.stringify(Quest.DIFF.hard)"));
+  if (hd.rest < 12 || hd.lives < 3) throw new Error("hard still over-tuned: " + JSON.stringify(hd));
+  ok(`hard softened but still hardest (rest ${hd.rest}t, lives ${hd.lives}, mook hp x${hd.mook})`);
+  // 9) 结算页显示最高连击
+  if (!/最高连击/.test(qSrc2)) throw new Error("clear screen does not show best combo");
+  ok("clear screen reports best combo");
+  // 10) 杂兵变体: 体型/血量/出伤三档, sz 真的进了受击框与精灵图
+  G_("Quest.start('mack','normal'); Quest.st.phase='fight';");
+  const vr = JSON.parse(G_(`(() => {
+    const mk = v => Quest._mkEnemy('kenji', 40, 600, 0, v);
+    const s = mk('small'), n = mk('normal'), e = mk('elite');
+    const hb = f => { const b = f.bodyBox(); return Math.round(b.y2 - b.y1); };
+    const sw = f => Math.round(f.spriteParams().dw);
+    return JSON.stringify({ sz: [s.sz, n.sz, e.sz], hp: [s.hp, n.hp, e.hp],
+      box: [hb(s), hb(n), hb(e)], spr: [sw(s), sw(n), sw(e)], elite: e.elite }); })()`));
+  if (!(vr.box[0] < vr.box[1] && vr.box[1] < vr.box[2])) throw new Error("sz does not scale the hurtbox: " + JSON.stringify(vr));
+  if (!(vr.spr[0] < vr.spr[1] && vr.spr[1] < vr.spr[2])) throw new Error("sz does not scale the sprite: " + JSON.stringify(vr));
+  if (!(vr.hp[0] < vr.hp[1] && vr.hp[1] < vr.hp[2]) || !vr.elite) throw new Error("variant stats wrong: " + JSON.stringify(vr));
+  ok(`mook variants: 小兵/常规/精英 hurtbox ${vr.box.join('/')}px, hp ${vr.hp.join('/')}, elite flagged`);
+  // 11) 闯关暂停菜单: 四行 + 键位页
+  G_("Quest.st.paused = true; Quest.st.pauseView = 'menu';");
+  if (G_("Quest._pauseRows().length") !== 4) throw new Error("pause menu rows missing");
+  if (!/重打本关/.test(qSrc2) || !/pauseView === 'keys'/.test(qSrc2)) throw new Error("pause menu lacks retry / keys view");
+  G_("Quest.st.paused = false; Quest.exit();");
+  ok("quest pause menu: 继续 / 重打本关 / 键位 / 退出 (+ P1&P2 key panel)");
+  // 7) Boss 曲: 合成轨已接入 playBgm/desiredBgm, 且无 AudioContext 时不抛
+  if (!/startBoss|BOSS_BPM/.test(auSrc)) throw new Error("synthesised boss theme missing");
+  G_("AudioSys.playBgm('boss'); AudioSys.playBgm('battle'); AudioSys.stopBgm();");
+  const bossPick = G_(`(() => { Quest.start('mack','normal');
+    Quest.st.phase = 'bossfight'; Quest.spawnBoss();
+    const during = desiredBgm();
+    Quest.st.boss.dead = true;
+    const after = desiredBgm();
+    Quest.exit();
+    return JSON.stringify({ during, after }); })()`);
+  const bp = JSON.parse(bossPick);
+  if (bp.during !== 'boss') throw new Error("boss fight does not request the boss theme: " + bossPick);
+  if (bp.after === 'boss') throw new Error("boss theme keeps playing after the boss dies");
+  ok(`boss theme wired: bossfight -> '${bp.during}', boss down -> '${bp.after}' (synth, no new audio asset)`);
+
   /* ---------- 6) 双人副本 CO-OP ---------- */
   console.log("[6] two-player co-op dungeon");
   // 菜单入口: 标题第 2 项(index 1) = 双人副本; 走 char -> char2 -> diff -> startCoop

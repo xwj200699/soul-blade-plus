@@ -752,7 +752,15 @@ function applyUrlParams() {
 function desiredBgm() {
   switch (G.screen) {
     case 'fight': return 'battle';
-    case 'quest': return Quest.st && Quest.st.phase === 'clear' ? 'result' : 'battle'; // M1.3
+    case 'quest': {                                   // M1.3 闯关 / M1.4 Boss 战专属曲
+      const st = Quest.st;
+      if (!st) return 'battle';
+      if (st.phase === 'clear') return 'result';
+      // Boss 出场(含 boss 前对白)就切合成 Boss 曲 —— 耐久 Boss 要打好几分钟
+      if (st.boss && !st.boss.dead) return 'boss';
+      if (st.phase === 'talk' && st.talkNext === 'bossfight') return 'boss';
+      return 'battle';
+    }
     case 'result': return 'result';
     default: return 'select'; // 菜单/标题/选人/说明 共用 select 主题
   }

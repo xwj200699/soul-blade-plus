@@ -40,6 +40,9 @@ class Fighter {
        闯关里只给玩家抬(>1)、给杂兵压(<1) —— 属性表仍是全局唯一真值,
        "只给玩家加成"这件事不污染 DATA。 */
     this.mob = 1;
+    /* 实例级体型系数(M1.4): 精灵图与受击框一起缩放。对战恒为 1;
+       闯关用它做杂兵变体 —— 小兵 0.86 / 精英 1.16, 同屏辨识度靠体型拉开。 */
+    this.sz = 1;
     this.pad = emptyPad();
   }
 
@@ -108,8 +111,10 @@ class Fighter {
     const bb = this.c.body || { w: 30, h: 148, crouchH: 96 };
     const crouched = this.state === 'crouch' ||
       (this.state === 'attack' && this.grounded && this.pad && this.pad.crouch);
-    const h = crouched ? (bb.crouchH || Math.round(bb.h * 0.65)) : bb.h;
-    return { x1: this.x - bb.w, y1: this.y - h, x2: this.x + bb.w, y2: this.y };
+    const z = this.sz || 1;
+    const h = (crouched ? (bb.crouchH || Math.round(bb.h * 0.65)) : bb.h) * z;
+    const w = bb.w * z;
+    return { x1: this.x - w, y1: this.y - h, x2: this.x + w, y2: this.y };
   }
 
   activeBox() {
@@ -533,10 +538,6 @@ class Fighter {
       this.invuln = 42;
       AudioSys.sfx('getup');
     }
-  }
-    runCineArrowRain(opp, s) {
-    // 占位，避免报错；后续可以补充具体箭雨演出逻辑
-    console.warn("runCineArrowRain 尚未实现");
   }
   getupLogic() {
     this.stateT--;
@@ -1076,7 +1077,7 @@ class Fighter {
   // ---- drawing ---------------------------------------------------------------
   spriteParams() {
     const c = this.c;
-    const s = c.scale;
+    const s = c.scale * (this.sz || 1);   // sz: 实例级体型(闯关杂兵变体)
     let yOff = 0;
     // yOff only applies to frames of the attack sheet itself — referenced
     // crouch frames (seq objects) are already baked at the right height

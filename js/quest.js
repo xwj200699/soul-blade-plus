@@ -26,9 +26,9 @@ const Quest = {
     normal: { mook: 0.92, boss: 0.85, ai: 'normal', bossAi: 'normal', dmg: 0.78, bossDmg: 0.88,
               mookMob: 0.88, bossMob: 0.95,
               attackers: 2, rest: 24, lives: 3, drop: 0.42, waveHeal: 0.13, heal: 0.58 },
-    hard:   { mook: 1.28, boss: 1.15, ai: 'hard',   bossAi: 'hard',   dmg: 1.05, bossDmg: 1.1,
-              mookMob: 0.96, bossMob: 1.0,
-              attackers: 3, rest: 8,  lives: 2, drop: 0.24, waveHeal: 0.06, heal: 0.36 },
+    hard:   { mook: 1.28, boss: 1.15, ai: 'hard',   bossAi: 'hard',   dmg: 1.0,  bossDmg: 1.05,
+              mookMob: 0.92, bossMob: 1.0,
+              attackers: 3, rest: 15, lives: 3, drop: 0.3,  waveHeal: 0.09, heal: 0.42 },
   },
 
   /* ---------------- 玩家侧加成 (M1.4 ·「只给玩家加成, 打怪要爽」) ----------------
@@ -177,6 +177,15 @@ const Quest = {
   MOOK_TINTS: ['brightness(0.62) saturate(0.45)', 'brightness(0.56) saturate(0.5) hue-rotate(40deg)',
                'brightness(0.6) saturate(0.4) hue-rotate(-45deg)'],
 
+  /* 杂兵变体 (M1.4): 77 个杂兵全是换色的英雄, 同屏辨识度太差。用体型 + 数值
+     拉开三种读法 —— 小兵一碰就倒但跑得快、精英厚得要磨、常规居中。
+     体型走 Fighter.sz(实例级, 精灵图与受击框一起缩放), 不动 DATA。 */
+  VARIANTS: {
+    small:  { sz: 0.86, hp: 0.66, dmg: 0.85, mob: 1.18, tint: 'brightness(0.72) saturate(0.35)' },
+    normal: { sz: 1.00, hp: 1.00, dmg: 1.00, mob: 1.00, tint: null },
+    elite:  { sz: 1.16, hp: 1.75, dmg: 1.12, mob: 0.90, tint: 'brightness(0.52) saturate(0.85) hue-rotate(-14deg)' },
+  },
+
   /* ---------------- lifecycle ---------------- */
   start(heroId, diff) { return this._begin([heroId], diff); },
   // 双人副本: 两位英雄同屏共闯剧情关(P1 键盘左侧 / P2 方向键+右手簇), 共享残机池。
@@ -192,7 +201,7 @@ const Quest = {
       enemies: [], boss: null, player: null, players: [], dummy: null,
       items: [], saidWave: {},
       lives: D.lives, livesMax: D.lives, revives: 0,
-      kills: 0, t0: G.tick, over: false, paused: false,
+      kills: 0, t0: G.tick, over: false, paused: false, pauseView: 'menu',
       fade: 24, // 开幕淡入
     };
     G.p2IsAI = true;
@@ -279,26 +288,43 @@ const Quest = {
   },
 
   /* ---------------- spawning ---------------- */
-  _mkEnemy(id, hp, x, tintIdx) {
+  _mkEnemy(id, hp, x, tintIdx, variant = 'normal') {
     const D = this.DIFF[this.st.diff];
+    const V = this.VARIANTS[variant] || this.VARIANTS.normal;
     const f = new Fighter(id, x, x > this.st.player.x ? -1 : 1, G);
     // 关卡递进(越来越难): 每往后一幕, 杂兵血量与出伤各加一档 ——
     // 第一幕基准, 终幕 ≈ +32% 血 / +16% 伤, 越接近总闸的敌人越硬。
     const lvl = this.st.level;
     const hpRamp = 1 + lvl * 0.08;
     const dmgRamp = 1 + lvl * 0.04;
-    f.maxHp = f.hp = Math.round(hp * D.mook * hpRamp);
+    f.maxHp = f.hp = Math.max(6, Math.round(hp * D.mook * hpRamp * V.hp));
     f.dispHp = f.hp;
     f.isMook = true;
-    f.dmgDealt = D.dmg * dmgRamp; // 杂兵出伤系数(fighter.receiveHit 读取)
-    f.mob = D.mookMob;             // 杂兵机动被压慢一点 —— 加成只给玩家
+    f.variant = variant;
+    f.elite = variant === 'elite';
+    f.sz = V.sz;                                    // 体型(精灵图+受击框)
+    f.dmgDealt = D.dmg * dmgRamp * V.dmg;           // 杂兵出伤系数(fighter.receiveHit 读取)
+    f.mob = D.mookMob * V.mob;                      // 杂兵机动被压慢一点 —— 加成只给玩家
     f.gainMeter = () => {};        // 杂兵不攒气 —— 小兵放超必是"打不过"的隐形元凶
     f.superReady = () => false;
-    f.tint = this.MOOK_TINTS[tintIdx % this.MOOK_TINTS.length];
+    f.tint = V.tint || this.MOOK_TINTS[tintIdx % this.MOOK_TINTS.length];
     f._ai = new AIController(f, this.st.player, D.ai, G);
     f._deadT = 0;
     f._rest = 20;                  // 入场先站一拍, 不能落地即抡
     return f;
+  },
+
+  /* 变体轮盘: 越靠后的幕精英越多, 小兵占比同步下降 —— 后期一波里既有硬骨头
+     也有杂鱼, 打起来有层次。第一幕第一波全部常规(开局不给意外)。 */
+  _rollVariant(waveIdx) {
+    const lvl = this.st.level;
+    if (lvl === 0 && waveIdx === 0) return 'normal';
+    const elite = Math.min(0.34, 0.08 + lvl * 0.06);
+    const small = Math.max(0.12, 0.34 - lvl * 0.05);
+    const r = Math.random();
+    if (r < elite) return 'elite';
+    if (r < elite + small) return 'small';
+    return 'normal';
   },
 
   spawnWave(w) {
@@ -310,7 +336,7 @@ const Quest = {
       // 左右交替入场, 靠屏缘
       const side = k % 2 === 0 ? 1 : -1;
       const x = side > 0 ? cam + 940 - k * 26 : cam + 84 + k * 26;
-      st.enemies.push(this._mkEnemy(id, hp, x, k));
+      st.enemies.push(this._mkEnemy(id, hp, x, k, this._rollVariant(st.waveIdx)));
     });
     setAnn(`WAVE ${st.waveIdx + 1}`, 'round', 56);
     AudioSys.sfx('round');
@@ -435,13 +461,35 @@ const Quest = {
     if (!st) return;
     const L = this.LEVELS[st.level];
 
-    // 暂停(ESC): 简版 —— J/点击恢复, ESC 再按退出到标题
+    // 暂停(ESC/P): 菜单式 —— 继续 / 重打本关 / 键位 / 退出。键位页里 ESC/K 先回菜单。
     if (Input.consume('Escape') || Input.consume('KeyP')) {
-      if (!st.paused) { st.paused = true; AudioSys.sfx('menuSel'); }
+      if (!st.paused) { st.paused = true; st.pauseView = 'menu'; AudioSys.sfx('menuSel'); }
+      else if (st.pauseView === 'keys') { st.pauseView = 'menu'; AudioSys.sfx('menuBack'); }
       else { this.exit(); AudioSys.sfx('menuBack'); return; }
     }
     if (st.paused) {
-      if (Input.consume('KeyJ') || Input.click(0, 0, 1024, 576)) { st.paused = false; AudioSys.sfx('menuSel'); }
+      if (st.pauseView === 'keys') {
+        if (Input.consume('KeyK') || Input.consume('KeyJ') || Input.click(0, 0, 1024, 576)) {
+          st.pauseView = 'menu'; AudioSys.sfx('menuBack');
+        }
+        return;
+      }
+      const rows = this._pauseRows();
+      const hit = i => Input.click(rows[i].x, rows[i].y, rows[i].w, rows[i].h);
+      if (Input.consume('KeyJ') || hit(0)) { st.paused = false; AudioSys.sfx('menuSel'); return; }
+      if (Input.consume('KeyR') || hit(1)) {          // 重打本关(残机复位, 击破数保留)
+        const df = st.diff, lv = st.level, kills = st.kills;
+        st.paused = false;
+        st.players = [];
+        this.loadLevel(lv);
+        st.kills = kills;
+        st.lives = this.DIFF[df].lives;
+        st.phase = 'talk';
+        AudioSys.sfx('menuSel');
+        return;
+      }
+      if (Input.consume('KeyK') || hit(2)) { st.pauseView = 'keys'; AudioSys.sfx('menuMove'); return; }
+      if (hit(3)) { this.exit(); AudioSys.sfx('menuBack'); return; }
       return;
     }
     if (st.fade > 0) st.fade--;
@@ -823,9 +871,16 @@ const Quest = {
       if (f.tint) { ctx.save(); ctx.filter = f.tint; f.draw(ctx); ctx.restore(); }
       else f.draw(ctx);
     };
+    // 残影层(M1.4 修): 冲刺/俯冲/超必突进的 afterimage 与分身跑位都在这一层,
+    // 闯关此前漏调 drawGhosts, 所有残影特效在剧情模式里是隐形的(对战模式一直有)
+    Effects.drawGhosts(ctx);
     // 敌人(远->近) -> 玩家(最上)
     this._drawItems(ctx);
-    for (const e of st.enemies) if (!e.dead || e._deadT < 56) drawF(e);
+    for (const e of st.enemies) {
+      if (e.dead && e._deadT >= 56) continue;
+      drawF(e);
+      if (e.elite && !e.dead) this._drawEliteMark(ctx, e);
+    }
     // 双人: 靠后(x 小)的先画, 领头压在上面; 出局倒地的队友也照常画出身形
     for (const pl of st.players.slice().sort((a, b) => a.x - b.x)) {
       drawF(pl);
@@ -855,7 +910,7 @@ const Quest = {
     if (st.phase === 'talk' && st.talkQ.length) this._dialog(ctx, st.talkQ[0]);
     if (st.phase === 'over') this._overlay(ctx, 'GAME OVER', '#e8306a', '残機用尽 · J / 点击 重试本关(残机重置) · K 回标题');
     if (st.phase === 'clear') this._clear(ctx);
-    if (st.paused) this._overlay(ctx, '一時停止', '#ffe27a', 'J / 点击 继续 · ESC 退出闯关');
+    if (st.paused) this._drawPause(ctx);
 
     if (st.fade > 0) {
       ctx.fillStyle = `rgba(0,0,0,${st.fade / 24})`;
@@ -873,6 +928,29 @@ const Quest = {
       return;
     }
     UI.pixText(ctx, 'P' + pl._pnum, pl.x, top, { size: 9, align: 'center', color: col, outline: true });
+  },
+
+  /* 精英杂兵头顶的双角标记 + 脚下暗环 —— 体型之外再给一个一眼能读的信号 */
+  _drawEliteMark(ctx, e) {
+    const bb = e.bodyBox();
+    const y = bb.y1 - 12, x = e.x;
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.15 * Math.sin(G.tick * 0.12);
+    ctx.strokeStyle = '#ff6b3d'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, STAGE.ground + 5, 22 * (e.sz || 1), 7, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#ff6b3d';
+    for (const sgn of [-1, 1]) {                 // 双角
+      ctx.beginPath();
+      ctx.moveTo(x + sgn * 3, y + 8);
+      ctx.lineTo(x + sgn * 9, y);
+      ctx.lineTo(x + sgn * 5, y + 9);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = '#ffd24a';
+    ctx.fillRect(x - 1.5, y + 3, 3, 3);
   },
 
   _drawItems(ctx) {
@@ -1072,6 +1150,52 @@ const Quest = {
     }
   },
 
+  /* 暂停菜单四行的几何(绘制与鼠标热区同源) */
+  _pauseRows() {
+    const r = [];
+    for (let i = 0; i < 4; i++) r.push({ x: 342, y: 248 + i * 46, w: 340, h: 38 });
+    return r;
+  },
+
+  _drawPause(ctx) {
+    const st = this.st;
+    ctx.fillStyle = 'rgba(6,8,7,0.78)';
+    ctx.fillRect(0, 0, 1024, 576);
+    if (st.pauseView === 'keys') {
+      UI.pixText(ctx, '键位', 512, 120, { size: 30, align: 'center', color: '#ffe27a', outline: true, spacing: 4 });
+      const L = [
+        ['P1', '#ffe27a', 'WASD 移动 · 双击 A/D 冲刺 · S+J/K 蹲攻'],
+        ['', '#ffe27a', 'J 轻击 · K 重击 · U 必杀 · I 超必 · 后拉方向 = 防御'],
+        ['P2', '#7ecbff', '方向键 移动 · 双击 ←/→ 冲刺 · ↓+技能 蹲攻'],
+        ['', '#7ecbff', '小键盘 1 轻 · 2 重 · 3 必杀 · 0 超必 (需开 NumLock)'],
+        ['通用', '#c9bfa8', 'ESC/P 暂停 · M 静音 · -/= 音乐 · 9/0 音效'],
+      ];
+      L.forEach(([tag, col, txt], i) => {
+        const y = 190 + i * 40;
+        if (tag) UI.pixText(ctx, tag, 250, y, { size: 13, color: col });
+        UI.pixText(ctx, txt, 300, y, { size: 11, color: '#e8e2d0' });
+      });
+      if (G.tick % 40 < 26) UI.pixText(ctx, 'K / ESC / 点击 返回', 512, 470, { size: 12, align: 'center', color: '#8a9a8f' });
+      return;
+    }
+    UI.pixText(ctx, '一時停止', 512, 190, { size: 34, align: 'center', color: '#ffe27a', outline: true, spacing: 4 });
+    const rows = this._pauseRows();
+    const items = [['J', '继续', '#ffe27a'], ['R', '重打本关', '#ff9db8'],
+                   ['K', '键位说明', '#7ecbff'], ['ESC', '退出闯关', '#c9bfa8']];
+    items.forEach(([key, label, col], i) => {
+      const rc = rows[i];
+      const hot = Input.hover(rc.x, rc.y, rc.w, rc.h);
+      ctx.fillStyle = hot ? 'rgba(255,226,122,0.14)' : 'rgba(16,20,18,0.82)';
+      ctx.fillRect(rc.x, rc.y, rc.w, rc.h);
+      ctx.fillStyle = col;
+      ctx.fillRect(rc.x, rc.y, 3, rc.h);
+      UI.pixText(ctx, key, rc.x + 26, rc.y + 25, { size: 13, color: col });
+      UI.pixText(ctx, label, rc.x + 108, rc.y + 25, { size: 14, color: hot ? '#fff' : '#e8e2d0' });
+    });
+    UI.pixText(ctx, `${this.LEVELS[st.level].sub} · 残机 ${st.lives}/${st.livesMax} · 击破 ${st.kills}`,
+      512, 460, { size: 11, align: 'center', color: '#9aa3bd' });
+  },
+
   _overlay(ctx, big, color, hint) {
     ctx.fillStyle = 'rgba(6,8,7,0.72)';
     ctx.fillRect(0, 0, 1024, 576);
@@ -1091,7 +1215,9 @@ const Quest = {
     UI.pixText(ctx, `${st.coop ? '双人' : '英雄'}: ${heroes} · 击破: ${st.kills} · 用时: ${mins} 分`, 512, 300, { size: 13, align: 'center', color: '#e8e2d0' });
     UI.pixText(ctx, `难度: ${st.diff.toUpperCase()} · 全 ${this.LEVELS.length} 幕 · 续关: ${st.revives}`,
       512, 326, { size: 11, align: 'center', color: '#9aa3bd' });
-    if (st.revives === 0) UI.pixText(ctx, 'NO CONTINUE — 一命通关！', 512, 354, { size: 12, align: 'center', color: '#ffb648' });
+    UI.pixText(ctx, `最高连击: ${st.best || 0} HIT`, 512, 350,
+      { size: 12, align: 'center', color: (st.best || 0) >= 20 ? '#ff9db8' : (st.best || 0) >= 10 ? '#ffd24a' : '#8ae06a' });
+    if (st.revives === 0) UI.pixText(ctx, 'NO CONTINUE — 一命通关！', 512, 376, { size: 12, align: 'center', color: '#ffb648' });
     if (G.tick % 40 < 26) UI.pixText(ctx, 'J / 点击 · 返回标题', 512, 420, { size: 12, align: 'center', color: '#ffe27a' });
   },
 };

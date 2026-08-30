@@ -388,7 +388,7 @@ const Effects = {
     // 外部 fx 表(fs≠200)无角色锚点: 水平居中角色、底边贴脚, 再靠 dx/dy 微调。
     // atX/atY: 绝对世界坐标锚定(演出用 —— 月牙钉在"挥刀的那个身影"的位置,
     // 物理一致性); dir: 朝向覆盖(ghost 的挥向≠本体朝向时用)
-    const c = fighter.c, sc = c.scale;
+    const c = fighter.c, sc = c.scale * (fighter.sz || 1);  // 跟随实例体型
     const yOff = (fighter.move && fighter.move.def.yOff) || 0;
     const dw = fs * sc, dh = fs * sc;
     const ax = sdef.atX !== undefined ? sdef.atX : fighter.x;
@@ -429,7 +429,7 @@ const Effects = {
   beam(x, y, dir, o = {}) {
     this.beams.push({
       x, y, dir: dir >= 0 ? 1 : -1, t: 0,
-      life: o.life || 30, maxW: o.maxW || 18,
+      life: o.life || 30, maxW: o.maxW || 18, len: o.len || 0,
       core: o.core || '#ffffff', edge: o.edge || '#c94aff', glow: o.glow || '#ff8428',
       targetX: o.targetX, seed: Math.random() * 6.28,
     });
@@ -708,6 +708,11 @@ const Effects = {
       p.vy += p.grav * rate; p.life -= rate;
     }
     this.parts = this.parts.filter(p => p.life > 0);
+    /* 粒子软上限(M1.4): 爽度层加了伤害数字/连杀爆闪/超必溅射, 终幕一波四杂兵时
+       粒子会成百上千地堆, 弱机器直接掉帧。超额就丢最老的那批 —— 视觉上看不出
+       (最老的本来就快消失了), 但把最坏情况钉死。 */
+    if (this.parts.length > 440) this.parts.splice(0, this.parts.length - 440);
+    if (this.texts.length > 40) this.texts.splice(0, this.texts.length - 40);
     for (const t of this.texts) { t.y += t.vy * rate; t.life -= rate; }
     this.texts = this.texts.filter(t => t.life > 0);
     for (const g of this.ghosts) g.life -= rate;
@@ -950,7 +955,12 @@ const Effects = {
       const kIn = Math.min(1, b.t / 4);
       const kOut = Math.min(1, Math.max(0, (b.life - b.t) / 6));
       const w = Math.max(2, b.maxW * kIn * kOut * (1 + 0.1 * Math.sin(b.t * 1.9 + b.seed)));
-      const x0 = b.x, x1 = b.dir > 0 ? 1064 : -40;
+      // 束长必须以发射点为基准, 不能写死屏幕坐标: 闯关是 3000+px 的世界坐标 + 相机
+      // 平移, 旧实现把远端钉在 1064/-40, 一旦战场推进到世界 x>1064, 矩形就朝反方向
+      // 铺开、整条光束跑到画面外 —— 吉川「太陽箭」与景英「熾熱光輝」在闯关里因此
+      // 完全看不见。reach 取一屏多一点, 发射点在画面内就一定贯穿全屏。
+      const reach = b.len || 1120;
+      const x0 = b.x, x1 = b.x + b.dir * reach;
       const bx = Math.min(x0, x1), bw = Math.abs(x1 - x0);
       const y = b.y + Math.sin(b.t * 2.3 + b.seed) * 1.2;
       // 外晕(加色) / 边缘 / 白芯 / 热线

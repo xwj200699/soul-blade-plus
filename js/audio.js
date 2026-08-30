@@ -35,7 +35,7 @@ const AudioSys = (() => {
   }
 
   // --- primitive voices -------------------------------------------------
-  function tone(freq, dur, { type = 'square', vol = 0.3, slide = 0, delay = 0, curve = 2.5, atk = 0 } = {}) {
+  function tone(freq, dur, { type = 'square', vol = 0.3, slide = 0, delay = 0, curve = 2.5, atk = 0, bus = null } = {}) {
     if (!ctx) return;
     const t0 = ctx.currentTime + delay;
     const o = ctx.createOscillator(), g = ctx.createGain();
@@ -45,11 +45,11 @@ const AudioSys = (() => {
     if (atk > 0) { g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + atk); } // 起音渐入去爆音
     else g.gain.setValueAtTime(vol, t0);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + dur * curve / 2.5);
-    o.connect(g); g.connect(sfxBus);
+    o.connect(g); g.connect(bus || sfxBus);
     o.start(t0); o.stop(t0 + dur + 0.05);
   }
 
-  function noise(dur, { freq = 1200, q = 1, vol = 0.3, type = 'bandpass', delay = 0, slide = 0, atk = 0 } = {}) {
+  function noise(dur, { freq = 1200, q = 1, vol = 0.3, type = 'bandpass', delay = 0, slide = 0, atk = 0, bus = null } = {}) {
     if (!ctx) return;
     const t0 = ctx.currentTime + delay;
     const src = ctx.createBufferSource(); src.buffer = noiseBuf;
@@ -59,7 +59,7 @@ const AudioSys = (() => {
     if (atk > 0) { g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + atk); } // 起音渐入去爆音
     else g.gain.setValueAtTime(vol, t0);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-    src.connect(f); f.connect(g); g.connect(sfxBus);
+    src.connect(f); f.connect(g); g.connect(bus || sfxBus);
     src.start(t0); src.stop(t0 + dur + 0.05);
   }
 
@@ -301,8 +301,82 @@ const AudioSys = (() => {
     }
   }
 
+  /* ================= Boss 曲(合成) =================
+     仓库里只有 select/battle/result 三首 mp3, 没有 Boss 曲, 而 ×10 耐久 Boss 要
+     打好几分钟 —— 同一段 battle 循环会腻。这里用现成的 tone/noise 合成一首
+     16 步循环的 Boss 曲(全部走 bgmBus, 音乐音量与静音照常生效), 不新增音频资源。
+     编排: 四踩底鼓 + 反拍军鼓 + 十六分闭镲 + 推进贝斯 + A 小调五声琶音,
+     两小节一循环, 第二小节降到 F 制造压迫。lookahead 调度: 每 120ms 把未来
+     350ms 内的步子排进 WebAudio 时间轴, 停止只需 clearInterval(尾音自然收)。 */
+  const BOSS_BPM = 138, BOSS_STEP = 60 / BOSS_BPM / 4;
+  const BASS = [110.0, 87.31];                       // A2 / F2 (两小节轮换)
+  const ARP = [440.0, 329.63, 261.63, 329.63];       // A4 E4 C4 E4
+  let bossTimer = null, bossStep = 0, bossNext = 0;
+
+  function bossSchedule(step, at) {
+    const bar = (step >> 4) & 1;                     // 0/1 小节
+    const i = step & 15;
+    const root = BASS[bar];
+    const B = bgmBus;
+    if (i % 2 === 0) {                               // 贝斯: 八分推进 + 小节末上行
+      const f = i === 14 ? root * 1.5 : root;
+      tone(f, BOSS_STEP * 1.7, { type: 'sawtooth', vol: 0.16, slide: -6, atk: 0.004, delay: at, bus: B });
+      tone(f / 2, BOSS_STEP * 1.7, { type: 'sine', vol: 0.13, atk: 0.006, delay: at, bus: B });
+    }
+    if (i === 0 || i === 4 || i === 8 || i === 12) {  // 底鼓
+      tone(58, 0.16, { type: 'sine', vol: 0.3, slide: -18, atk: 0.002, delay: at, bus: B });
+      noise(0.07, { freq: 320, type: 'lowpass', vol: 0.16, atk: 0.002, delay: at, bus: B });
+    }
+    if (i === 6 || i === 14) {                       // 军鼓(反拍)
+      noise(0.09, { freq: 2200, type: 'highpass', vol: 0.13, slide: -900, atk: 0.001, delay: at, bus: B });
+    }
+    noise(0.03, { freq: 7000, type: 'highpass', vol: i % 2 ? 0.035 : 0.06, atk: 0.001, delay: at, bus: B });
+    if (i % 2 === 1) {                               // 琶音(十六分反拍, 亮线)
+      const f = ARP[(step >> 1) % ARP.length] * (bar ? 0.94 : 1);
+      tone(f, BOSS_STEP * 1.1, { type: 'square', vol: 0.055, atk: 0.003, delay: at, bus: B });
+    }
+    if (i === 15) {                                  // 小节收尾: 一记低频扫弦
+      noise(0.18, { freq: 900, q: 0.8, type: 'bandpass', vol: 0.07, slide: -600, atk: 0.01, delay: at, bus: B });
+    }
+  }
+
+  function bossPump() {
+    if (!ctx || bossTimer === null) return;
+    const ahead = ctx.currentTime + 0.35;
+    let guard = 0;
+    while (bossNext < ahead && guard++ < 64) {
+      bossSchedule(bossStep % 32, Math.max(0, bossNext - ctx.currentTime));
+      bossStep++;
+      bossNext += BOSS_STEP;
+    }
+  }
+
+  function startBoss() {
+    if (!ctx || bossTimer !== null) return;           // 幂等: playBgm 每帧都被调
+    bossStep = 0;
+    bossNext = ctx.currentTime + 0.08;
+    bossTimer = setInterval(bossPump, 120);
+    bossPump();
+  }
+
+  function stopBoss() {
+    if (bossTimer === null) return;
+    clearInterval(bossTimer);
+    bossTimer = null;
+  }
+
   function playBgm(name) {
+    if (name === 'boss') {          // Boss 曲是合成的, 不在 BGM_SRC 里
+      curBgm = 'boss';
+      if (!ctx) return;
+      initBgm();
+      const now = ctx.currentTime;
+      for (const k in bgmTrk) if (bgmTrk[k].src) fadeTo(bgmTrk[k], 0, now); // mp3 全部淡出
+      startBoss();
+      return;
+    }
     if (!BGM_SRC[name]) return;
+    stopBoss();
     curBgm = name;
     if (!ctx) return;                     // remembered; ensure() → initBgm() → decode applies it
     initBgm();
@@ -312,6 +386,7 @@ const AudioSys = (() => {
 
   function stopBgm() {
     curBgm = null;
+    stopBoss();
     if (!ctx) return;
     const now = ctx.currentTime;
     for (const k in bgmTrk) if (bgmTrk[k].src) fadeTo(bgmTrk[k], 0, now);

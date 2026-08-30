@@ -133,14 +133,18 @@ def xy_torso(f, hip, neck, ph=0):
 
 
 def xy_sword(f, P):
-    """后手绢带流苏 -> 前手细剑(swordA 剑身角 / swordL 长) + 红梅剑穗; bloom=撒花瓣"""
+    """后手绢带 -> 前手细剑(swordA 剑身角 / swordL 长) + 红梅剑穗; bloom=撒花瓣"""
     rx, ry = CX + P["rH"][0], FEET_Y + P["rH"][1]
-    sa = P.get("silkA", 2.5)
+    # 绢带自后手垂向身后下方。早期版本按 silkA 向上飘, 但后手被躯干挡住, 结果读成
+    # 一条脱离身体、飘在脸边的粉线(接触表一眼就看出来) —— 改成向后下垂挂, 摆动
+    # 幅度由 silkA 微调, 出招时甩得更开。
+    whip = (P.get("silkA", 2.5) - 2.3) * 3.0
+    t = P.get("t", 0)
     pts = [(rx, ry)]
-    for i in range(1, 5):                                        # 绢带: 四节波动流苏
+    for i in range(1, 5):
         u = i / 4
-        pts.append((rx + math.cos(sa) * 13 * u,
-                    ry - math.sin(sa) * 13 * u + math.sin(P.get("t", 0) * .7 + u * 3.2) * 3 * u))
+        pts.append((rx - (13 + whip) * u + math.sin(t * .6 + u * 2.4) * 2.2 * u,
+                    ry + 12 * u + math.sin(t * .85 + u * 3.1) * 2.0 * u))
     for i in range(len(pts) - 1):
         f.d.line([pts[i], pts[i + 1]], fill=XY["sash"] if i % 2 == 0 else XY["petalL"], width=2)
     f.px(pts[-1][0], pts[-1][1], XY["gold"])
@@ -224,6 +228,30 @@ R._bust_shoulders = _bust_shoulders
 # ---------------- 攻击 pose (帧 0-3 蓄 / 4 命中 / 5 收, 对齐 seq 契约) ----------------
 def xiaoyan_anims():
     A = R.common_anims("xiaoyan")
+    # 通用 pose 表里 待机/跳/落/蹲 的持械姿态几乎一样(接触表上四行长得像同一张),
+    # 这里给她专属改写: 剑位随状态明显换位 —— 待机斜持、腾空举剑、下落剑尖朝后下、
+    # 蹲姿沉身低架。只动她自己, 不碰其他角色共用的 common_anims。
+    A["Idle"] = [R.wrapf("xiaoyan", {
+        "hipY": -38 + (i % 3 == 2), "lF": (-7, 0), "rF": (8, 0),
+        "lH": (7, -30 - (i % 3 == 2)), "swordA": 1.02 + math.sin(i * .9) * .05,
+        "swordL": 29, "silkA": 2.3 + math.sin(i * .7) * .25, "t": i * .9,
+    }, i) for i in range(6)]
+    A["Jump"] = [R.wrapf("xiaoyan", {                      # 腾空: 举剑过顶 + 收腿
+        "hipY": -43, "lean": -.14, "lF": (-4, -9), "rF": (9, -5),
+        "lH": (2, -44), "swordA": 1.72, "swordL": 31, "silkA": 3.0,
+    }, i) for i in range(2)]
+    A["Fall"] = [R.wrapf("xiaoyan", {                      # 下落: 剑尖朝后下, 身体前倾
+        "hipY": -40, "lean": .18, "lF": (-7, -3), "rF": (8, -7),
+        "lH": (10, -28), "swordA": -.62, "swordL": 31, "silkA": 2.9,
+    }, i) for i in range(2)]
+    A["Crouch"] = [R.wrapf("xiaoyan", {                    # 蹲: 沉身 + 剑横在膝前(低架)
+        "hipY": -22, "torsoLen": 12, "lean": .22, "lF": (-10, 0), "rF": (10, 0),
+        "lH": (9, -17), "swordA": .12, "swordL": 28, "silkA": 2.4, "t": i,
+    }, i) for i in range(4)]
+    A["CrouchIn"] = [R.wrapf("xiaoyan", {
+        "hipY": -30, "torsoLen": 14, "lean": .16, "lF": (-9, 0), "rF": (9, 0),
+        "lH": (8, -24), "swordA": .55, "swordL": 28, "silkA": 2.4,
+    }, 0)]
     # Attack1 梅斬: 反手后引 -> 斜上横扫(撒花), 收势剑尖朝前
     atk1 = []
     for i in range(6):

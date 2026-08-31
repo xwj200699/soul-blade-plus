@@ -23,6 +23,7 @@ const AudioSys = (() => {
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       initBgm();
+      initSamples();
       if (ctx.state === 'suspended') ctx.resume(); // WKWebView 新建 ctx 默认挂起, 手势内立即 resume
       return true;
     } catch (e) { ctx = null; return false; }
@@ -235,6 +236,55 @@ const AudioSys = (() => {
 
   function sfx(name) { if (ctx && !muted && SFX[name]) SFX[name](); }
 
+  /* ================= 角色专属采样音效 (M1.4) =================
+     素材放在 音效/<中文名>/ 下, 按按键命名 —— j/k/u/i 对应 轻/重/必杀/超必,
+     「大招起手」对应超必发动那一下。这里只做"有采样就用采样, 没有就退回合成音":
+     · 路径含中文, fetch 前必须 encodeURI
+     · file:// 下 fetch 会失败(与 BGM 同一限制) -> 静默回退到合成音, 不报错不静音
+     · 走 sfxBus, 所以音效音量键(9/0)与静音(M)照常生效 */
+  const CHAR_SFX = {
+    mack: {                                    // 文杰(玩家提供的实录音效)
+      light: '音效/文杰/j.mp3',
+      heavy: '音效/文杰/k.mp3',
+      special: '音效/文杰/u.mp3',
+      super: '音效/文杰/i.mp3',
+      superCast: '音效/文杰/大招起手.mp3',
+      vol: 0.9,
+    },
+  };
+  const smpBuf = {};            // 'mack:heavy' -> AudioBuffer
+  let smpInit = false;
+
+  function initSamples() {
+    if (smpInit || !ctx) return;
+    smpInit = true;
+    for (const [cid, tbl] of Object.entries(CHAR_SFX)) {
+      for (const [key, src] of Object.entries(tbl)) {
+        if (key === 'vol') continue;
+        fetch(encodeURI(src))
+          .then(r => r.arrayBuffer())
+          .then(a => ctx.decodeAudioData(a))
+          .then(buf => { smpBuf[cid + ':' + key] = buf; })
+          .catch(() => { /* file:// 或缺文件: 保持回退到合成音 */ });
+      }
+    }
+  }
+
+  function hasSample(cid, key) { return !!smpBuf[cid + ':' + key]; }
+
+  /* 播放角色采样; 返回是否真的播了(没播的话调用方去放合成音) */
+  function moveSfx(cid, key) {
+    const buf = smpBuf[cid + ':' + key];
+    if (!ctx || muted || !buf) return false;
+    const src = ctx.createBufferSource();
+    const g = ctx.createGain();
+    g.gain.value = (CHAR_SFX[cid] && CHAR_SFX[cid].vol) || 0.9;
+    src.buffer = buf;
+    src.connect(g); g.connect(sfxBus);
+    src.start(ctx.currentTime);
+    return true;
+  }
+
   // --- BGM: real instrumental mp3s decoded to AudioBuffers and looped SAMPLE-ACCURATELY.
   //     HTMLAudio's .loop has an audible seek-gap at the wrap (Eric heard the "断"), so each
   //     track loops forever via an AudioBufferSourceNode(loop=true) on its own gain; scene
@@ -394,6 +444,7 @@ const AudioSys = (() => {
 
   return {
     ensure, sfx, playBgm, stopBgm, toggleMute,
+    moveSfx, hasSample,          // M1.4 角色专属采样(文杰 j/k/u/i/大招起手)
     // M1.3: 实测视频录制 —— master 总线旁路成 MediaStream(附加输出, 正常出声不受影响)
     recorderStream() {
       if (!ctx || !master) return (typeof MediaStream !== 'undefined') ? new MediaStream() : null;

@@ -190,18 +190,22 @@ class Fighter {
     if (!T) return;
     // 蓄势(文杰): 站定不动累积, 蓄满后下一记重击暴击必倒; 一动就散
     if (T.charge) {
-      const still = this.grounded && (this.state === 'idle' || this.state === 'crouch') &&
-                    !this.pad.left && !this.pad.right && !this.pad.jump &&
-                    !this.pad.light && !this.pad.heavy && !this.pad.special && !this.pad.super;
-      if (still) {
+      /* 蓄力条件(M1.4 两轮修正):
+         初版要求"完全静止" 48 tick(0.8s) —— 实战一走位就散, 等于永远蓄不满, 玩家
+         反馈"太久、用不上"。现在只要"人在地面且不在出招/受击/冲刺"就累积, 走位
+         逼近照样蓄, 时间砍到 30 tick(0.5s)。
+         且不会被打断(玩家点名): 挨打、被防、被压制都不清空 —— 唯一的消耗方式是
+         真的把那记重击打出去。读作"这一刀他一直在攒", 简单可靠。 */
+      const busy = !this.grounded || this.state === 'attack' || this.state === 'hit' ||
+                   this.state === 'down' || this.state === 'getup' ||
+                   this.state === 'dash' || this.state === 'backdash';
+      if (!busy) {
         this.chargeT++;
         if (this.chargeT >= T.charge.t && !this.charged) {
           this.charged = true;
           Effects.ring(this.x, this.y - 88, this.c.theme2 || '#ffd24a', 14);
           AudioSys.sfx('menuSel');
         }
-      } else if (this.state !== 'attack') {
-        this.chargeT = 0; this.charged = false;
       }
       if (this.charged && this.world.tick % 6 === 0) Effects.rise(this.x, this.y, this.c.theme2 || '#ffd24a', 2);
     }
@@ -266,12 +270,17 @@ class Fighter {
       if (!this.superReady()) return;
       this.meter = 0;
       this.world.superFlash(this, def);
-      AudioSys.sfx('superCast');   // 超必发动喊话层(M1.4): 与 superFlash 叠成"起手"
+      // 超必发动喊话层(M1.4): 有「大招起手」采样就用它, 否则合成音; 与 superFlash 叠成起手
+      if (!AudioSys.moveSfx(this.c.id, 'superCast')) AudioSys.sfx('superCast');
       // 聚气 burst: embers gather into the body during the super flash
       // (the flash freezes the world, so these drift inward in slow motion)
       Effects.converge(this.x, this.y - 85, [this.c.theme, this.c.theme2, '#ffffff'], 42, 110);
     }
-    if (def.kind === 'special') { this.specialCd = def.cooldown || 0; AudioSys.sfx('skillCast'); }
+    if (def.kind === 'special') {
+      this.specialCd = def.cooldown || 0;
+      // 有专属必杀采样(u.mp3)时不再叠合成起手音, 免得两层声音打架
+      if (!AudioSys.hasSample(this.c.id, 'special')) AudioSys.sfx('skillCast');
+    }
     if (def.invuln) this.invuln = Math.max(this.invuln, def.invuln);
     if (!chained) { this.rekka = false; this.rekkaH = false; this.rekkaN = 0; }
     this.state = 'attack';
@@ -477,8 +486,11 @@ class Fighter {
 
     const d = m.def;
     // swing sound just before active frames (兜底: 招式没写 sfx 也不许无声出刀)
+    // M1.4: 角色若配了专属采样(音效/<名>/j·k·u·i.mp3)优先用它, 否则退回合成音
     if (!m.sfxDone && m.t >= Math.max(1, d.startup - 3)) {
-      AudioSys.sfx(d.sfx || (d.kind === 'light' ? 'whooshL' : 'whooshH'));
+      if (!AudioSys.moveSfx(this.c.id, d.kind)) {
+        AudioSys.sfx(d.sfx || (d.kind === 'light' ? 'whooshL' : 'whooshH'));
+      }
       m.sfxDone = true;
     }
     // super act 1 聚气: inward ember stream while charging

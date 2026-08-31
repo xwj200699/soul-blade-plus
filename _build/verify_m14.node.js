@@ -802,6 +802,26 @@ const ok = m => console.log("  ok  " + m);
   if (!(chg.charged > chg.plain) || !chg.kd || chg.spent) throw new Error("mack charge failed: " + JSON.stringify(chg));
   ok(`文杰 蓄勢・一刀: ${chg.plain} -> ${chg.charged} dmg, forces knockdown, charge consumed`);
 
+  // 蓄力必须在"走位逼近"中也能蓄满(初版要求完全静止 0.8s, 实战永远蓄不满 = 用不上),
+  // 且挨打不打断(玩家点名): 唯一的消耗方式是把那记重击真的打出去
+  arena2("mack", "tank", 300);
+  const chgUse = JSON.parse(G_(`(() => { const a = G.fighters[0], b = G.fighters[1];
+    a.chargeT = 0; a.charged = false;
+    // 一路走过去(向前按住), 看能不能蓄满
+    a.pad = Object.assign(emptyPad(), { right: true });
+    for (let i = 0; i < 40; i++) { a.state = 'walk'; a.tickTraits(); }
+    const whileWalking = a.charged;
+    const t = DATA.mack.trait.charge.t;
+    // 挨一下 -> 仍然保留
+    a.state = 'idle'; b.invuln = 0; a.invuln = 0; a.comboable = 0; a.pad = emptyPad();
+    a.receiveHit({ dmg: 5, hitstun: 6, blockstun: 3, knock: 1, kind: 'light' }, b);
+    const survivedHit = a.charged;
+    return JSON.stringify({ whileWalking, survivedHit, t }); })()`));
+  if (!chgUse.whileWalking) throw new Error("charge still cannot build while walking in — trait unusable");
+  if (chgUse.t > 36) throw new Error("charge time still too long: " + chgUse.t + " ticks");
+  if (!chgUse.survivedHit) throw new Error("charge got interrupted by a hit — player asked for uninterruptible");
+  ok(`蓄勢 usable & uninterruptible: fills in ${chgUse.t}t (${(chgUse.t / 60).toFixed(2)}s) while walking in, survives being hit`);
+
   // 景英 灼焼: 命中后挂灼烧, 之后持续掉血
   arena2("angela", "tank", 80);
   const burn = JSON.parse(G_(`(() => { const [a,b] = G.fighters;
@@ -876,6 +896,36 @@ const ok = m => console.log("  ok  " + m);
   const selSrc = fs.readFileSync(path.join(ROOT, "js", "select2.js"), "utf8");
   if (!/特性 \$\{c\.trait\.name\}|trait\.name/.test(selSrc)) throw new Error("select screen does not show the trait");
   ok("select screen shows each fighter's trait name + description");
+
+  /* ---------- 5.10) 角色专属采样音效 (文杰) ---------- */
+  console.log("[5.10] per-fighter sampled SFX");
+  // 素材文件必须真的在位(路径含中文, 引擎侧要 encodeURI 才能 fetch)
+  const SFX_FILES = { light: '音效/文杰/j.mp3', heavy: '音效/文杰/k.mp3', special: '音效/文杰/u.mp3',
+                      super: '音效/文杰/i.mp3', superCast: '音效/文杰/大招起手.mp3' };
+  for (const [k, rel] of Object.entries(SFX_FILES)) {
+    const abs = path.join(ROOT, rel.replace(/\//g, path.sep));
+    if (!fs.existsSync(abs)) throw new Error(`missing sample for mack.${k}: ${rel}`);
+    const b = fs.readFileSync(abs);
+    if (b.length < 2000) throw new Error(`sample too small (truncated?): ${rel}`);
+    if (!(b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) && !(b[0] === 0xff)) {
+      throw new Error(`not an mp3: ${rel}`);
+    }
+  }
+  ok(`文杰 samples on disk & mp3-framed: ${Object.keys(SFX_FILES).join('/')}`);
+  // 引擎侧接线: CHAR_SFX 表 + encodeURI + moveSfx/hasSample 导出 + fighter.js 三处调用
+  const auSrc2 = fs.readFileSync(path.join(ROOT, "js", "audio.js"), "utf8");
+  if (!/CHAR_SFX/.test(auSrc2) || !/encodeURI/.test(auSrc2)) throw new Error("sample loader not wired in audio.js");
+  if (!G_("typeof AudioSys.moveSfx === 'function' && typeof AudioSys.hasSample === 'function'"))
+    throw new Error("AudioSys does not expose moveSfx/hasSample");
+  const fSrc4 = fs.readFileSync(path.join(ROOT, "js", "fighter.js"), "utf8");
+  if (!/AudioSys\.moveSfx\(this\.c\.id, d\.kind\)/.test(fSrc4)) throw new Error("swing sfx not routed through samples");
+  if (!/moveSfx\(this\.c\.id, 'superCast'\)/.test(fSrc4)) throw new Error("super cast not routed through samples");
+  if (!/hasSample\(this\.c\.id, 'special'\)/.test(fSrc4)) throw new Error("special cast does not check for a sample");
+  ok("audio.js loads them (encodeURI) and fighter.js prefers samples for J/K/U/I + super cast");
+  // 无 AudioContext(headless / file://)时必须静默回退, 不能抛也不能变哑
+  if (G_("AudioSys.moveSfx('mack','heavy')") !== false) throw new Error("moveSfx should report false without a decoded buffer");
+  G_("(() => { const f = new Fighter('mack', 300, 1, G); f.startMove('heavy'); for (let i=0;i<12;i++) f.attackLogic(f); })()");
+  ok("graceful fallback: no AudioContext -> moveSfx() reports false, synth whoosh still plays");
 
   /* ---------- 6) 双人副本 CO-OP ---------- */
   console.log("[6] two-player co-op dungeon");

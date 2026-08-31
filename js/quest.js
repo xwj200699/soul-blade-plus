@@ -778,17 +778,21 @@ const Quest = {
       const targets = mine ? alive : this._living();
       for (const t of targets) {
         if (t.dead || t.superSeq) continue;
+        if (pr.hitList && pr.hitList.includes(t)) continue;   // 贯穿: 同一目标只吃一次
         if (!rectsOverlap(pr.box(), t.bodyBox())) continue;
         if (t.invuln > 0 || t.state === 'down' || t.state === 'getup' || t.juggleImmune()) continue;
         const pd = pr.def;
+        const hp0 = t.hp;
         t.receiveHit({
-          dmg: pd.dmg, chip: pd.chip, guardDmg: pd.guardDmg, knock: pd.knock, hitstun: pd.hitstun,
+          dmg: Math.max(1, Math.round(pd.dmg * (pr.dmgMul || 1))), chip: pd.chip, guardDmg: pd.guardDmg,
+          knock: pd.knock, hitstun: pd.hitstun,
           blockstun: pd.blockstun, meterHit: pd.meterHit, hitSfx: 'hitL', proj: true, launch: pd.launch,
         }, pr.owner);
-        pr.dead = true;
+        if (mine && t.hp < hp0) this._juiceHit(pr.owner, t, Math.round(hp0 - t.hp));
+        pr.consume(t);                                       // 贯穿则继续飞, 否则消失
         Effects.spark(pr.x, pr.y, Math.sign(pr.vx), ['#c9baff', '#7d5bff', '#ffffff'], 10, 5);
         G.hitstop(pd.hitstop || 6);
-        break;
+        if (pr.dead) break;
       }
     }
     for (const pr of G.projectiles) pr.update();

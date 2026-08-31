@@ -1288,11 +1288,35 @@ class Projectile {
     // M1.4「必杀范围不够大」: 远程必杀的弹体统一放大 —— 判定盒与画面同一个系数,
     // 所以看起来变大就是真的变大(def.hitScale 由 roster.js 的范围强化段统一挂)
     this.hs = def.hitScale || 1;
+    /* 英雄特性(M1.4): pierce 贯穿次数(吉川) / returns 折返 tick(文萱) /
+       dmgMul 单发伤害倍率(泽轩 過負荷, 由 spawnProjectile 挂上) */
+    this.pierce = def.pierce || 0;
+    this.returns = def.returns || 0;
+    this.dmgMul = 1;
+    this.hitList = [];
     this.trail = def.trail || 'rgba(125,91,255,0.75)';
     this.t = 0; this.dead = false;
   }
 
+  /* 命中一个目标后的去留: 还有贯穿次数就记名单继续飞, 否则消失 */
+  consume(target) {
+    if (this.pierce > 0) {
+      this.pierce--;
+      this.hitList.push(target);
+      Effects.spark(this.x, this.y, Math.sign(this.vx), ['#ffffff', this.trail], 5, 3);
+    } else {
+      this.dead = true;
+    }
+  }
+
   update() {
+    // 折返(文萱·回旋扇): 飞到第 returns tick 掉头回程, 回程可再削一次
+    if (this.returns && this.t === this.returns) {
+      this.vx = -this.vx; this.dir = -this.dir; this.vy = -this.vy * 0.3;
+      this.hitList = [];                    // 回程重新可命中
+      this.pierce = Math.max(this.pierce, 1);
+      Effects.ring(this.x, this.y, this.trail, 10);
+    }
     this.x += this.vx; this.y += this.vy; this.t++;
     // M1.3: 边界随 STAGE.left/right 动态(闯关模式世界坐标 >1024; 对战模式数值不变)
     if (this.x < STAGE.left - 100 || this.x > STAGE.right + 100 || this.y < -20 || this.y > STAGE.ground + 20) this.dead = true;
@@ -1320,6 +1344,14 @@ class Projectile {
     ctx.save();
     ctx.translate(Math.round(this.x), Math.round(this.y));
     if (this.hs !== 1) ctx.scale(this.hs, this.hs); // M1.4: 弹体整体放大(与判定盒同系数)
+    if (this.crit) {                                // 過負荷弹: 外圈白热光晕
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.35 + 0.2 * Math.sin(this.t * 0.6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-20, -18, 40, 36);
+      ctx.restore();
+    }
     if (this.kind === 'kunai') {
       // 苦无: 沿飞行方向的匕首(菱形刃+柄+环), 不旋转 —— 直刺感。放大 1.5x 更清晰
       const a = Math.atan2(this.vy, this.vx * this.dir);

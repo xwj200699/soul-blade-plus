@@ -741,6 +741,142 @@ const ok = m => console.log("  ok  " + m);
   if (bp.after === 'boss') throw new Error("boss theme keeps playing after the boss dies");
   ok(`boss theme wired: bossfight -> '${bp.during}', boss down -> '${bp.after}' (synth, no new audio asset)`);
 
+  /* ---------- 5.9) 英雄特性 TRAITS: 每人一条独有规则 ---------- */
+  console.log("[5.9] per-hero signature traits");
+  const tr = JSON.parse(G_(`JSON.stringify(ROSTER.map(cid => {
+    const t = DATA[cid].trait || null;
+    return { cid, cn: DATA[cid].cn, name: t && t.name, keys: t ? Object.keys(t).filter(k => k !== 'name' && k !== 'desc') : [] };
+  }))`));
+  const missing = tr.filter(x => !x.name);
+  if (missing.length) throw new Error("fighters with no trait: " + missing.map(x => x.cn).join(","));
+  const seen = new Set();
+  for (const x of tr) {
+    const sig = x.keys.filter(k => k !== 'armorMoves').sort().join('+');
+    if (!sig) throw new Error(x.cn + ": trait has no mechanic");
+    if (seen.has(sig)) throw new Error(`two fighters share the same mechanic (${sig}) — not distinctive`);
+    seen.add(sig);
+  }
+  ok(`all ${tr.length} fighters have a unique signature mechanic: ${tr.map(x => x.cn + '=' + x.name).join(' / ')}`);
+
+  const arena2 = (cid, foe, dx) => {
+    setPad({});
+    G_(`startMatch('${cid}', '${foe}', 'normal', false, true, false, true)`);
+    G_("G.phase='fight'; G.training.dummy='stand';");
+    step(3);
+    G_(`G.fighters[0].x = 400; G.fighters[1].x = 400 + ${dx};
+        G.fighters[1].maxHp = 9999; G.fighters[1].hp = 9999; G.fighters[1].dispHp = 9999;
+        G.fighters[1].state='idle'; G.fighters[1].invuln = 0; G.fighters[1].pad = emptyPad();`);
+  };
+
+  // 欣韵 間合いの主: 同一招在远距离比贴身更痛
+  arena2("ayame", "tank", 60);
+  const near = G_(`(() => { const [a,b] = G.fighters; b.hp = 9999; b.comboable = 0; a.combo.count = 0;
+    a.x = b.x - 60; return b.maxHp - (b.receiveHit({ dmg: 40, hitstun: 5, blockstun: 3, knock: 0, kind: 'heavy' }, a), b.hp); })()`);
+  const far = G_(`(() => { const [a,b] = G.fighters; b.hp = 9999; b.comboable = 0; a.combo.count = 0; b.invuln = 0; b.state='idle';
+    a.x = b.x - 195; return b.maxHp - (b.receiveHit({ dmg: 40, hitstun: 5, blockstun: 3, knock: 0, kind: 'heavy' }, a), b.hp); })()`);
+  if (!(far > near)) throw new Error(`ayame rangeDmg not applied (near ${near} / far ${far})`);
+  ok(`欣韵 間合いの主: 40dmg hit deals ${near} point-blank vs ${far} at spear tip`);
+
+  // 毅 不退の棍: 重击前摇吃到攻击 -> 返回 'armor', 不进硬直
+  arena2("wukong", "tank", 90);
+  const armor = G_(`(() => { const [a,b] = G.fighters;
+    a.startMove('heavy'); a.move.t = 2;
+    const r = a.receiveHit({ dmg: 30, hitstun: 20, blockstun: 8, knock: 6, kind: 'heavy' }, b);
+    return JSON.stringify({ r, state: a.state, hitstun: a.hitstun }); })()`);
+  const ar = JSON.parse(armor);
+  if (ar.r !== 'armor' || ar.state !== 'attack' || ar.hitstun > 0) throw new Error("wukong armor failed: " + armor);
+  ok("毅 不退の棍: hit during heavy startup returns 'armor', swing continues (no hitstun)");
+
+  // 文杰 蓄勢: 站定蓄满 -> 重击伤害跳一档且必定击倒
+  arena2("mack", "tank", 80);
+  const chg = JSON.parse(G_(`(() => { const [a,b] = G.fighters;
+    a.charged = false; a.chargeT = 0;
+    b.hp = 9999; b.comboable = 0; a.combo.count = 0; b.invuln = 0; b.state='idle'; b.pad = emptyPad();
+    b.receiveHit({ dmg: 40, hitstun: 5, blockstun: 3, knock: 0, kind: 'heavy' }, a);
+    const plain = 9999 - b.hp;
+    a.charged = true; a.chargeT = 99;
+    b.hp = 9999; b.comboable = 0; a.combo.count = 0; b.invuln = 0; b.state='idle'; b.grounded = true;
+    const info = { dmg: 40, hitstun: 5, blockstun: 3, knock: 0, kind: 'heavy' };
+    b.receiveHit(info, a);
+    return JSON.stringify({ plain, charged: 9999 - b.hp, kd: !!info.kd, spent: a.charged }); })()`));
+  if (!(chg.charged > chg.plain) || !chg.kd || chg.spent) throw new Error("mack charge failed: " + JSON.stringify(chg));
+  ok(`文杰 蓄勢・一刀: ${chg.plain} -> ${chg.charged} dmg, forces knockdown, charge consumed`);
+
+  // 景英 灼焼: 命中后挂灼烧, 之后持续掉血
+  arena2("angela", "tank", 80);
+  const burn = JSON.parse(G_(`(() => { const [a,b] = G.fighters;
+    b.hp = 9999; b.comboable = 0; b.invuln = 0; b.state='idle'; b.pad = emptyPad();
+    b.receiveHit({ dmg: 10, hitstun: 5, blockstun: 3, knock: 0, kind: 'light' }, a);
+    const afterHit = b.hp, stacks = b.burn;
+    for (let i = 0; i < 120; i++) b.tickTraits();
+    return JSON.stringify({ stacks, afterHit, afterBurn: b.hp }); })()`));
+  if (!(burn.stacks > 0) || !(burn.afterBurn < burn.afterHit)) throw new Error("angela burn failed: " + JSON.stringify(burn));
+  ok(`景英 灼焼: ${burn.stacks} stacks applied, ticked ${burn.afterHit - burn.afterBurn} extra damage`);
+
+  // 晓艳 紅梅乱舞: 轻击可连打四段(其他人两段)
+  const rekka = JSON.parse(G_(`(() => {
+    const cnt = (cid) => { const c = DATA[cid]; return (c.trait && c.trait.rekkaMax) || 1; };
+    return JSON.stringify({ xiaoyan: cnt('xiaoyan'), mack: cnt('mack') }); })()`));
+  if (!(rekka.xiaoyan > rekka.mack)) throw new Error("xiaoyan rekkaMax not higher");
+  arena2("xiaoyan", "tank", 70);
+  const chainN = G_(`(() => { const [a,b] = G.fighters;
+    a.rekkaN = 0; let ok = 0;
+    for (let i = 0; i < 5; i++) { if (a.chainLegal(a.c.moves.light, 'light')) { ok++; a.rekkaN++; } }
+    return ok; })()`);
+  if (chainN < 3) throw new Error("xiaoyan light chain not extended: " + chainN);
+  ok(`晓艳 紅梅乱舞: light chain links ${chainN} times (others ${rekka.mack})`);
+
+  // 吉川 貫通の矢 / 文萱 回旋扇 / 泽轩 過負荷: 弹体层三条特性
+  const projTraits = JSON.parse(G_(`(() => {
+    const hp = DATA.houyi.moves.light.projectile.pierce;
+    const fanRet = DATA.diaochan.moves.special.projectile.returns;
+    // 貫通: consume 一次后仍存活
+    const P = new Projectile({ facing: 1, c: DATA.houyi, projN: 0 }, DATA.houyi.moves.light.projectile, 100, 0, 1);
+    P.consume({}); const alive = !P.dead;
+    // 折返: 到 returns tick 后 vx 反向
+    const F = new Projectile({ facing: 1, c: DATA.diaochan }, DATA.diaochan.moves.special.projectile, 100, 0, 1);
+    const vx0 = F.vx; for (let i = 0; i <= fanRet; i++) F.update();
+    // 過負荷: 第 3 发挂上 dmgMul
+    G.projectiles = [];
+    const d = { c: DATA.doctor, x: 0, y: 0, facing: 1, projN: 0 };
+    for (let i = 0; i < 3; i++) G.spawnProjectile(d, DATA.doctor.moves.light.projectile);
+    const muls = G.projectiles.map(p => p.dmgMul);
+    G.projectiles = [];
+    return JSON.stringify({ hp, alive, fanRet, flipped: Math.sign(F.vx) !== Math.sign(vx0), muls });
+  })()`));
+  if (!projTraits.hp || !projTraits.alive) throw new Error("houyi pierce failed: " + JSON.stringify(projTraits));
+  if (!projTraits.flipped) throw new Error("diaochan boomerang failed: " + JSON.stringify(projTraits));
+  if (!projTraits.muls.some(m => m > 1)) throw new Error("doctor overload failed: " + JSON.stringify(projTraits));
+  ok(`吉川 貫通(pierce ${projTraits.hp}, survives a hit) / 文萱 回旋扇(flips at t${projTraits.fanRet}) / 泽轩 過負荷(dmgMul ${projTraits.muls.join(',')})`);
+
+  // 钰胜 不動如山: 护条积累减半
+  arena2("tank", "mack", 70);
+  const gm = JSON.parse(G_(`(() => { const [a] = G.fighters;
+    a.guard = 0; a.state='idle'; a.grounded = true; a.pad = Object.assign(emptyPad(), { left: true });
+    a.receiveHit({ dmg: 5, guardDmg: 40, blockstun: 8, knock: 2, kind: 'heavy' }, G.fighters[1]);
+    return JSON.stringify({ guard: a.guard, mul: a.c.trait.guardMul }); })()`));
+  if (!(gm.mul < 1) || !(gm.guard < 40 * 1.45)) throw new Error("tank guardMul failed: " + JSON.stringify(gm));
+  ok(`钰胜 不動如山: 40 guardDmg block adds only ${gm.guard.toFixed(1)} guard (x${gm.mul})`);
+
+  // 翔 残影反擊: 闪避成功后拿到 buff, 且 buff 期内伤害更高
+  arena2("kenji", "tank", 80);
+  const dg = JSON.parse(G_(`(() => { const [a,b] = G.fighters;
+    b.hp = 9999; b.comboable = 0; a.combo.count = 0; b.invuln = 0; b.state='idle'; b.pad = emptyPad();
+    a.dodgeBuff = 0;
+    b.receiveHit({ dmg: 40, hitstun: 5, blockstun: 3, knock: 0, kind: 'light' }, a);
+    const plain = 9999 - b.hp;
+    a.dodgeBuff = a.c.trait.dodgeBuff.t;
+    b.hp = 9999; b.comboable = 0; a.combo.count = 0; b.invuln = 0; b.state='idle';
+    b.receiveHit({ dmg: 40, hitstun: 5, blockstun: 3, knock: 0, kind: 'light' }, a);
+    return JSON.stringify({ plain, buffed: 9999 - b.hp }); })()`));
+  if (!(dg.buffed > dg.plain)) throw new Error("kenji dodgeBuff failed: " + JSON.stringify(dg));
+  ok(`翔 残影反擊: ${dg.plain} -> ${dg.buffed} dmg inside the post-dodge window`);
+
+  // 特性必须显示在选人页(否则"各具特色"只存在于代码里)
+  const selSrc = fs.readFileSync(path.join(ROOT, "js", "select2.js"), "utf8");
+  if (!/特性 \$\{c\.trait\.name\}|trait\.name/.test(selSrc)) throw new Error("select screen does not show the trait");
+  ok("select screen shows each fighter's trait name + description");
+
   /* ---------- 6) 双人副本 CO-OP ---------- */
   console.log("[6] two-player co-op dungeon");
   // 菜单入口: 标题第 2 项(index 1) = 双人副本; 走 char -> char2 -> diff -> startCoop

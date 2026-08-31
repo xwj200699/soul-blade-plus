@@ -293,23 +293,36 @@ UI._drawCharGrid = function (ctx, G, s) {
   } else {
     this.drawCharPreview(ctx, cid, 208, 486, 1.7, G.tick, 'idle', true);
   }
-  const cx0 = 404, cy0 = 258;
+  const cx0 = 404, cy0 = 252;
   ctx.fillStyle = 'rgba(13,11,22,0.85)';
-  ctx.fillRect(cx0, cy0, 524, 236);
+  ctx.fillRect(cx0, cy0, 524, 268);
   ctx.fillStyle = p2turn ? '#7ecbff' : c.theme;
-  ctx.fillRect(cx0, cy0, 4, 236);
-  this.pixText(ctx, c.name, cx0 + 26, cy0 + 40, { size: 22, color: '#fff' });
-  this.pixText(ctx, `${c.cn} · ${c.title}`, cx0 + 26, cy0 + 68, { size: 13, color: c.theme2 });
-  this.pixText(ctx, `TYPE: ${c.type}`, cx0 + 26, cy0 + 94, { size: 10, color: '#9aa3bd' });
-  this.statBar(ctx, cx0 + 26, cy0 + 112, '力', c.stats.pow, c.theme);
-  this.statBar(ctx, cx0 + 26, cy0 + 134, '速', c.stats.spd, c.theme);
-  this.statBar(ctx, cx0 + 26, cy0 + 156, '距', c.stats.rng, c.theme);
+  ctx.fillRect(cx0, cy0, 4, 268);
+  this.pixText(ctx, c.name, cx0 + 26, cy0 + 36, { size: 22, color: '#fff' });
+  this.pixText(ctx, `${c.cn} · ${c.title}`, cx0 + 26, cy0 + 62, { size: 13, color: c.theme2 });
+  this.pixText(ctx, `TYPE: ${c.type}`, cx0 + 26, cy0 + 86, { size: 10, color: '#9aa3bd' });
+  this.statBar(ctx, cx0 + 26, cy0 + 104, '力', c.stats.pow, c.theme);
+  this.statBar(ctx, cx0 + 26, cy0 + 126, '速', c.stats.spd, c.theme);
+  this.statBar(ctx, cx0 + 26, cy0 + 148, '距', c.stats.rng, c.theme);
   const spName = c.moves && c.moves.special && c.moves.special.name ? c.moves.special.name : '—';
   const supName = c.moves && c.moves.super && c.moves.super.name ? c.moves.super.name : '—';
-  this.pixText(ctx, `必殺: ${spName}`, cx0 + 26, cy0 + 192, { size: 12, color: '#ffe27a' });
-  this.pixText(ctx, `超必: ${supName}`, cx0 + 26, cy0 + 214, { size: 12, color: '#ff9d5c' });
+  this.pixText(ctx, `必殺: ${spName}`, cx0 + 26, cy0 + 178, { size: 12, color: '#ffe27a' });
+  this.pixText(ctx, `超必: ${supName}`, cx0 + 26, cy0 + 198, { size: 12, color: '#ff9d5c' });
+  // 英雄特性(M1.4): 每人一条只属于自己的规则 —— 选人时就要看得到, 否则"各具特色"
+  // 只存在于代码里。描述按 24 字断行, 最多两行。
+  if (c.trait) {
+    ctx.fillStyle = 'rgba(255,197,49,0.10)';
+    ctx.fillRect(cx0 + 20, cy0 + 210, 400, 48);
+    ctx.fillStyle = c.theme2 || '#ffc531';
+    ctx.fillRect(cx0 + 20, cy0 + 210, 3, 48);
+    this.pixText(ctx, `特性 ${c.trait.name}`, cx0 + 32, cy0 + 226, { size: 12, color: '#ffc531' });
+    const d = c.trait.desc || '';
+    const lines = [];
+    for (let i = 0; i < d.length && lines.length < 2; i += 24) lines.push(d.slice(i, i + 24));
+    lines.forEach((ln, i) => this.pixText(ctx, ln, cx0 + 32, cy0 + 242 + i * 14, { size: 9, color: '#c9bfa8' }));
+  }
   // 动态动作预览(小窗, 与立绘分区不重叠)
-  this.drawCharPreview(ctx, cid, cx0 + 448, cy0 + 190, 1.15, G.tick, 'run', true);
+  this.drawCharPreview(ctx, cid, cx0 + 452, cy0 + 186, 1.1, G.tick, 'run', true);
 };
 
 UI._drawStageSel = function (ctx, G, s) {

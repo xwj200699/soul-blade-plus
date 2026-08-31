@@ -43,6 +43,12 @@ class Fighter {
     /* 实例级体型系数(M1.4): 精灵图与受击框一起缩放。对战恒为 1;
        闯关用它做杂兵变体 —— 小兵 0.86 / 精英 1.16, 同屏辨识度靠体型拉开。 */
     this.sz = 1;
+    /* 英雄特性状态(M1.4, 见 roster.js TRAITS): 蓄势 / 闪避强化 / 灼烧 / 轻连段数 */
+    this.chargeT = 0; this.charged = false;   // 文杰 蓄勢
+    this.dodgeBuff = 0;                       // 翔 残影反擊
+    this.burn = 0; this.burnT = 0; this.burnDmg = 0; this.burnSrc = null; // 景英 灼焼
+    this.rekkaN = 0;                          // 晓艳 紅梅乱舞(轻连段计数)
+    this.projN = 0;                           // 泽轩 過負荷(投射物计数)
     this.pad = emptyPad();
   }
 
@@ -160,6 +166,80 @@ class Fighter {
   /* meterMul: 实例级攒气系数(闯关只给玩家抬) —— 超必来得更勤, 打怪更爽 */
   gainMeter(n) { this.meter = Math.min(100, this.meter + n * (this.meterMul || 1)); }
 
+  /* ---- 英雄特性 (M1.4, 声明在 roster.js TRAITS) --------------------------
+     tickTraits: 每帧维护"蓄势"与"灼烧"两个持续态。
+     traitDmgMul: 出手瞬间的伤害系数(间合/蓄势/闪避强化 三者可叠)。
+     onTraitHit: 命中后的挂载效果(目前只有灼烧)。 */
+  tickTraits() {
+    const T = this.c.trait;
+    // 灼烧(景英): 分段扣血, 每段冒一簇火屑; 永不致死(留 1 血, 击杀交给正面命中)
+    if (this.burn > 0) {
+      this.burnT--;
+      if (this.burnT <= 0) {
+        this.burn--;
+        this.burnT = this.burnEvery || 22;
+        const d = Math.max(1, Math.round(this.burnDmg));
+        this.hp = Math.max(1, this.hp - d);
+        this.lastHurt = this.world.tick;
+        this.flash = Math.max(this.flash, 3);
+        Effects.text(this.x, this.y - 168, String(d), '#ff8428', 11);
+        Effects.rise(this.x, this.y - 20, '#ff8428', 3);
+        if (this.burnSrc && this.burnSrc !== this) this.burnSrc.gainMeter(3);
+      }
+    }
+    if (!T) return;
+    // 蓄势(文杰): 站定不动累积, 蓄满后下一记重击暴击必倒; 一动就散
+    if (T.charge) {
+      const still = this.grounded && (this.state === 'idle' || this.state === 'crouch') &&
+                    !this.pad.left && !this.pad.right && !this.pad.jump &&
+                    !this.pad.light && !this.pad.heavy && !this.pad.special && !this.pad.super;
+      if (still) {
+        this.chargeT++;
+        if (this.chargeT >= T.charge.t && !this.charged) {
+          this.charged = true;
+          Effects.ring(this.x, this.y - 88, this.c.theme2 || '#ffd24a', 14);
+          AudioSys.sfx('menuSel');
+        }
+      } else if (this.state !== 'attack') {
+        this.chargeT = 0; this.charged = false;
+      }
+      if (this.charged && this.world.tick % 6 === 0) Effects.rise(this.x, this.y, this.c.theme2 || '#ffd24a', 2);
+    }
+  }
+
+  traitDmgMul(victim, info) {
+    const T = this.c.trait;
+    let k = 1;
+    if (this.dodgeBuff > 0 && T && T.dodgeBuff) k *= T.dodgeBuff.dmg;   // 翔: 闪避后反击
+    if (T && T.rangeDmg) {                                              // 欣韵: 越远越痛
+      const R = T.rangeDmg;
+      const d = Math.abs(this.x - victim.x);
+      const u = Math.max(0, Math.min(1, (d - R.min) / Math.max(1, R.max - R.min)));
+      k *= 1 + R.bonus * u;
+    }
+    if (this.charged && T && T.charge && info && info.kind === 'heavy') { // 文杰: 蓄势一刀
+      k *= T.charge.dmg;
+      this.charged = false; this.chargeT = 0;
+      Effects.flashFrame({ alpha: 0.22, t: 2 });
+      Effects.text(this.x, this.y - 214, '蓄勢一刀!', this.c.theme2 || '#ffd24a', 15);
+      this.world.shake(7, 10);
+      info.kd = true;                                                    // 蓄满的重击必定击倒
+    }
+    return k;
+  }
+
+  onTraitHit(victim, info) {
+    const T = this.c.trait;
+    if (T && T.burn && victim && !victim.dead) {                         // 景英: 灼焼
+      victim.burn = T.burn.ticks;
+      victim.burnT = T.burn.every;
+      victim.burnEvery = T.burn.every;
+      victim.burnDmg = T.burn.dmg;
+      victim.burnSrc = this;
+      Effects.rise(victim.x, victim.y - 30, '#ff8428', 4);
+    }
+  }
+
   // ---- attack start / chain -------------------------------------------------
   startMove(key, chained = false) {
     // 蹲J 变招只在连锁内交替 —— 单发蹲J 必须永远是正手削足(否则会"起身"打返扫)
@@ -193,7 +273,7 @@ class Fighter {
     }
     if (def.kind === 'special') { this.specialCd = def.cooldown || 0; AudioSys.sfx('skillCast'); }
     if (def.invuln) this.invuln = Math.max(this.invuln, def.invuln);
-    if (!chained) { this.rekka = false; this.rekkaH = false; }
+    if (!chained) { this.rekka = false; this.rekkaH = false; this.rekkaN = 0; }
     this.state = 'attack';
     this.move = { def, t: 0, chained, hasHit: false, contact: false, contactT: 0, want: null, spawned: false, sfxDone: false, landed: false, landedT: 0 };
     this.setAnim(def.anim, true);
@@ -209,7 +289,9 @@ class Fighter {
     if (nextKey === 'special' && !this.specialReady()) return false;
     if (nextKey === 'super' && !this.superReady()) return false;
     if (CHAIN_RANK[next.kind] > CHAIN_RANK[cur.kind]) return true;
-    if (cur.kind === 'light' && next.kind === 'light' && !this.rekka) return true;
+    // rekkaMax: 轻击可连打段数(默认 1 -> J·J 两段; 晓艳 3 -> 四段)
+    if (cur.kind === 'light' && next.kind === 'light' &&
+        this.rekkaN < ((this.c.trait && this.c.trait.rekkaMax) || 1)) return true;
     if (cur.kind === 'heavy' && next.kind === 'heavy' && !this.rekkaH) return true;
     return false;
   }
@@ -224,6 +306,8 @@ class Fighter {
     if (this.comboable > 0) this.comboable--;
     if (this.flash > 0) this.flash--;
     if (this.lockout > 0) this.lockout--;
+    if (this.dodgeBuff > 0) this.dodgeBuff--;
+    this.tickTraits();
     if (this.combo.timer > 0) { this.combo.timer--; if (this.combo.timer <= 0) this.combo.count = 0; }
     // guard gauge recovers slowly, and only after a beat with no blocks —
     // sustained pressure keeps the crush threat alive
@@ -494,7 +578,7 @@ class Fighter {
     // execute chain on contact within the cancel window
     if (m.want && m.contact && m.t <= m.contactT + 18 && this.grounded && this.chainLegal(d, m.want)) {
       const nextKind = this.c.moves[m.want].kind;
-      if (d.kind === 'light' && nextKind === 'light') this.rekka = true;
+      if (d.kind === 'light' && nextKind === 'light') { this.rekka = true; this.rekkaN++; }
       if (d.kind === 'heavy' && nextKind === 'heavy') this.rekkaH = true;
       this._chainHit = m.hitLanded === true;  // 连锁来源是否真命中(变招路由用)
       const key = m.want;
@@ -507,6 +591,7 @@ class Fighter {
       this.state = this.grounded ? 'idle' : 'fall';
       this.rekka = false;
       this.rekkaH = false;
+      this.rekkaN = 0;
     }
   }
 
@@ -937,11 +1022,30 @@ class Fighter {
                      ['idle', 'walk', 'guard', 'block'].includes(this.state) &&
                      this.holdingAway(attacker.x);
 
+    /* 霸体(毅·不退の棍): 重击前摇窗口内硬吃一下 —— 掉血但不进硬直/不被击退,
+       换来一次强行换招的机会。超必打破霸体(否则无敌等级失衡)。 */
+    const AR = this.c.trait && this.c.trait.armor;
+    if (AR && !blocking && info.kind !== 'super' && this.state === 'attack' &&
+        this.move && this.move.def.armor && this.move.t < this.move.def.startup) {
+      const dmg = Math.max(1, Math.round(info.dmg * AR.dmgTaken * (this.c.dmgTaken || 1) *
+                                         (attacker.dmgDealt || 1)));
+      this.hp = Math.max(1, this.hp - dmg);   // 霸体不会被这一下打死
+      this.lastHurt = this.world.tick;
+      this.flash = 4;
+      this.gainMeter(AR.meter);
+      Effects.text(this.x, this.y - 205, 'ARMOR', '#ffd24a', 13);
+      Effects.spark(this.x, this.y - 90, -Math.sign(attacker.x - this.x) || 1, ['#ffd24a', '#fff2d8'], 7, 4);
+      AudioSys.sfx('block');
+      this.world.hitstop(5);
+      return 'armor';
+    }
+
     if (blocking) {
       this.facing = attacker.x >= this.x ? 1 : -1;
       this.state = 'block';
       this.lastBlockT = this.world.tick;
-      this.guard += (info.guardDmg || 8) * 1.45; // 破防积累: 1.0(太难)->1.6(偏易)->1.45(Eric 微调到中间)
+      // trait.guardMul(钰胜·不動如山 = 0.5): 护条积累系数, <1 极难被破防
+      this.guard += (info.guardDmg || 8) * 1.45 * ((this.c.trait && this.c.trait.guardMul) || 1);
       if (this.guard >= 100) return this.guardCrush(dir);
       const chip = Math.round((info.chip || 0) * (attacker.dmgDealt || 1));
       if (chip > 0) { this.hp = Math.max(1, this.hp - chip); this.lastHurt = this.world.tick; } // chip never KOs
@@ -959,7 +1063,7 @@ class Fighter {
     // c.dmgTaken: 角色级减伤系数(肉盾 0.8) —— maxHp 保持 100, HUD/完胜判定不受影响
     // attacker.dmgDealt: 实例级出伤系数(闯关杂兵 <1) —— 对战不设, 只有 Quest 会挂
     const dmg = Math.max(1, Math.round(info.dmg * scale * (this.c.dmgTaken || 1) *
-                                       (attacker.dmgDealt || 1)));
+                                       (attacker.dmgDealt || 1) * attacker.traitDmgMul(this, info)));
     this.hp = Math.max(0, this.hp - dmg);
     this.lastHurt = this.world.tick;
     this.flash = 6;
@@ -989,6 +1093,7 @@ class Fighter {
 
     this.gainMeter(Math.round(dmg * 0.7));
     attacker.gainMeter(info.meterHit || 8);
+    attacker.onTraitHit(this, info);
     AudioSys.sfx(info.hitSfx || 'hitL');
     // 受击层(M1.4): 打击点之外, 挨打的一方按伤害分档出一声闷响 —— 「被击打要有音效」
     AudioSys.sfx(dmg >= 18 ? 'hurtCrit' : dmg >= 9 ? 'hurtH' : 'hurtL');

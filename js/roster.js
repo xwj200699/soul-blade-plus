@@ -1223,5 +1223,57 @@ for (const [cid, tbl] of Object.entries({
   for (const c of Object.values(DATA)) for (const m of Object.values(c.moves || {})) bump(m);
 })();
 
-/* ---------- roster list (select screen + AI use this) ---------- */
+/* ================================================================================
+   英雄特性 TRAITS (M1.4 ·「让每个英雄技能都各具特色」)
+   在此之前十个人的招式表是同一套模板(J·J / K·K / 蹲攻 / 空中下砸 / 一必一超),
+   区别只在数字和配色 —— 玩起来"换个皮肤而已"。这里给每人一条只属于自己的
+   规则, 由 fighter.js / main.js 的对应钩子读取, 并显示在选人页信息卡上:
+
+     charge     静止蓄势, 下一记重击暴击+必倒      (文杰: 一刀的重量)
+     dodgeBuff  后撤闪避成功 -> 短时间攻击强化      (翔: 残影反击)
+     rangeDmg   距离越远伤害越高                   (欣韵: 长枪的间合)
+     armor      重击前摇霸体, 硬吃一下不被打断      (毅: 棍不退)
+     pierce     投射物贯穿                         (吉川: 贯通之矢)
+     burn       命中附加灼烧持续伤害                (景英: 灼焼)
+     returns    投射物折返, 回程再削一次            (文萱: 回旋扇)
+     overload   每第 N 发投射物过载暴击             (泽轩: 过负荷)
+     guardMul   护条积累系数(<1 = 极难破防)         (钰胜: 不动如山)
+     rekkaMax   轻击可连打的段数(默认 1 = 两段)     (晓艳: 红梅乱舞)
+   ================================================================================ */
+const TRAITS = {
+  mack:     { name: '蓄勢・一刀', desc: '静止约 0.8 秒蓄满, 下一记重击 +45% 伤害且必定击倒',
+              charge: { t: 48, dmg: 1.45 } },
+  kenji:    { name: '残影反擊', desc: '后撤闪避成功后 1 秒内, 出手伤害 +35%',
+              dodgeBuff: { t: 60, dmg: 1.35 } },
+  ayame:    { name: '間合いの主', desc: '距离越远伤害越高 —— 枪尖极限命中最多 +30%',
+              rangeDmg: { min: 70, max: 200, bonus: 0.30 } },
+  wukong:   { name: '不退の棍', desc: '重击前摇带霸体: 硬吃一下不被打断(该下伤害减 45%)',
+              armor: { dmgTaken: 0.55, meter: 14 }, armorMoves: ['heavy', 'heavy2', 'cheavy'] },
+  houyi:    { name: '貫通の矢', desc: '箭矢可贯穿 1 个目标继续飞行',
+              pierce: 1 },
+  angela:   { name: '灼焼', desc: '命中附加灼烧: 之后 3 段持续伤害',
+              burn: { ticks: 3, every: 22, dmg: 4 } },
+  diaochan: { name: '回旋扇', desc: '火羽扇飞出后折返, 回程再削一次',
+              returns: 32 },
+  doctor:   { name: '過負荷', desc: '每第 3 发投射物过载: 伤害 ×1.8',
+              overload: { every: 3, dmg: 1.8 } },
+  tank:     { name: '不動如山', desc: '受伤 -20%, 且护条积累减半 —— 极难被破防',
+              guardMul: 0.5 },
+  xiaoyan:  { name: '紅梅乱舞', desc: '轻击可连打四段(其他人只有两段)',
+              rekkaMax: 3 },
+};
+(() => {
+  for (const [cid, t] of Object.entries(TRAITS)) {
+    const c = DATA[cid];
+    if (!c) continue;
+    c.trait = t;
+    // 把"投射物类"特性下发到具体招式定义上(引擎在弹体上读)
+    if (t.pierce) for (const m of Object.values(c.moves)) if (m.projectile) m.projectile.pierce = t.pierce;
+    if (t.returns && c.moves.special && c.moves.special.projectile) c.moves.special.projectile.returns = t.returns;
+    // 霸体挂在指定招式的定义上(引擎只在前摇窗口内认)
+    for (const mk of (t.armorMoves || [])) if (c.moves[mk]) c.moves[mk].armor = true;
+  }
+})();
+
+
 const ROSTER = ['mack', 'kenji', 'ayame', 'wukong', 'houyi', 'angela', 'diaochan', 'doctor', 'tank', 'xiaoyan'];

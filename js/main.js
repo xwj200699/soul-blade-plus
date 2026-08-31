@@ -27,8 +27,19 @@ const G = {
   spawnProjectile(f, def) {
     // def.spread: 一次抛出多枚(扇形苦无), 每枚一个 vy; 否则单发
     const vys = def.spread || [0];
+    // 過負荷(泽轩): 每第 N 发弹体过载 —— 伤害倍率写在弹体实例上, 不污染共享 def
+    const OL = f.c.trait && f.c.trait.overload;
+    f.projN = (f.projN || 0) + 1;
+    const crit = !!(OL && f.projN % OL.every === 0);
     for (const vy of vys) {
-      this.projectiles.push(new Projectile(f, def, f.x + f.facing * 70, f.y + def.y, f.facing, vy));
+      const pr = new Projectile(f, def, f.x + f.facing * 70, f.y + def.y, f.facing, vy);
+      if (crit) { pr.dmgMul = OL.dmg; pr.crit = true; pr.hs *= 1.25; }
+      this.projectiles.push(pr);
+    }
+    if (crit) {
+      Effects.text(f.x, f.y - 200, 'OVERLOAD!', '#7fd3ff', 14);
+      Effects.ring(f.x + f.facing * 50, f.y - 92, '#7fd3ff', 14);
+      AudioSys.sfx('skillCast');
     }
     AudioSys.sfx('projectile');
   },
@@ -171,6 +182,8 @@ function tryHit(a, b, boxA, moveA) {
       Effects.text(b.x, b.y - 195, '回避!', '#35e0d8', 16);
       AudioSys.sfx('dodge');
       b.gainMeter(6);
+      const DB = b.c.trait && b.c.trait.dodgeBuff;     // 翔: 闪避成功 -> 反击强化
+      if (DB) { b.dodgeBuff = DB.t; Effects.ring(b.x, b.y - 88, b.c.theme2 || '#35e0d8', 12); }
     }
     return;
   }
@@ -193,10 +206,15 @@ function tryHit(a, b, boxA, moveA) {
   const res = b.receiveHit({
     dmg: dmgVal, chip: d.chip, guardDmg: d.guardDmg, knock: d.knock, hitstun: d.hitstun,
     blockstun: d.blockstun, kd, launch: d.launch, meterHit: d.meterHit, hitSfx: d.hitSfx,
+    kind: d.kind,
   }, a);
 
-  moveA.hitLanded = res !== 'block';
-  if (res === 'block') {
+  moveA.hitLanded = res !== 'block' && res !== 'armor';
+  if (res === 'armor') {          // 打在霸体上: 有反馈但不算真命中(毅硬吃这一下继续挥棍)
+    Effects.blockSpark(px, py, a.facing, d.kind);
+    G.hitstop(9);
+    G.shake(4, 7);
+  } else if (res === 'block') {
     // ② 格挡对抗感: 摩擦火花 + 分级卡帧(受阻感) + 震动(打在结界上的实感, 不再像打空)
     Effects.blockSpark(px, py, a.facing, d.kind);
     const bHeavy = d.kind !== 'light';
@@ -257,17 +275,21 @@ function resolveCombat() {
         Effects.text(t.x, t.y - 195, '回避!', '#35e0d8', 16);
         AudioSys.sfx('dodge');
         t.gainMeter(6);
+        const DB = t.c.trait && t.c.trait.dodgeBuff;
+        if (DB) { t.dodgeBuff = DB.t; Effects.ring(t.x, t.y - 88, t.c.theme2 || '#35e0d8', 12); }
       }
       continue;
     }
+    if (pr.hitList && pr.hitList.includes(t)) continue;   // 贯穿: 同一目标只吃一次
     const pd = pr.def;
     // proj: 飞行道具命中不消耗浮空追击配额(Eric: 空中点到人后还能贱贱补一刀);
     // launch: 空中被点到会小幅上浮, 给投掷者冲过去补刀的时间
     const res = t.receiveHit({
-      dmg: pd.dmg, chip: pd.chip, guardDmg: pd.guardDmg, knock: pd.knock, hitstun: pd.hitstun,
+      dmg: Math.max(1, Math.round(pd.dmg * (pr.dmgMul || 1))), chip: pd.chip, guardDmg: pd.guardDmg,
+      knock: pd.knock, hitstun: pd.hitstun,
       blockstun: pd.blockstun, meterHit: pd.meterHit, hitSfx: 'hitL', proj: true, launch: pd.launch,
     }, pr.owner);
-    pr.dead = true;
+    pr.consume(t);                                       // 贯穿则继续飞, 否则消失
     Effects.spark(pr.x, pr.y, Math.sign(pr.vx), res === 'block' ? ['#35b9e0', '#8ad8ff'] : ['#c9baff', '#7d5bff', '#ffffff'], 10, 5);
     G.hitstop(res === 'block' ? 4 : pd.hitstop || 6);
   }
